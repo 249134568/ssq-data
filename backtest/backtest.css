@@ -1,0 +1,267 @@
+/* ========== Backtest Styles (Apple Design) ========== */
+
+#page-backtest { max-width: 1200px; margin: 0 auto; padding: 0 24px 60px; }
+
+.bt-card {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  padding: 28px;
+  margin-bottom: 24px;
+  box-shadow: var(--shadow-sm);
+}
+
+.bt-card-title {
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin-bottom: 20px;
+  color: var(--text-primary);
+}
+
+/* Config Grid */
+.bt-config-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.bt-config-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.bt-config-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.bt-config-select, .bt-config-input {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  outline: none;
+  transition: var(--transition);
+}
+
+.bt-config-select:focus, .bt-config-input:focus {
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 3px rgba(0,113,227,0.12);
+}
+
+.bt-config-input[type="number"] {
+  width: 80px;
+}
+
+/* Weight Override */
+.bt-weight-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+  padding: 16px;
+  background: var(--bg-primary);
+  border-radius: var(--radius-md);
+  margin-bottom: 16px;
+}
+
+.bt-weight-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bt-weight-item label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  min-width: 60px;
+}
+
+/* Buttons */
+.bt-btn-group {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.bt-btn {
+  padding: 10px 24px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.bt-btn-primary {
+  background: var(--accent-blue);
+  color: #fff;
+}
+
+.bt-btn-primary:hover { background: var(--accent-blue-dark); }
+.bt-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.bt-btn-secondary {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+}
+
+.bt-btn-secondary:hover { background: #e8e8ed; }
+
+.bt-btn-success {
+  background: #34c759;
+  color: #fff;
+}
+
+.bt-btn-success:hover { background: #2db84d; }
+
+/* Progress Bar */
+.bt-progress-wrap {
+  margin-top: 16px;
+  display: none;
+}
+
+.bt-progress-wrap.active { display: block; }
+
+.bt-progress-bar {
+  height: 8px;
+  background: #e5e5ea;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.bt-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-blue), #5ac8fa);
+  border-radius: 4px;
+  transition: width 0.3s;
+  width: 0%;
+}
+
+.bt-progress-text {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 6px;
+}
+
+/* Hit Rate Table */
+.bt-hit-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.bt-hit-table th {
+  background: linear-gradient(135deg, #1d1d1f, #2c2c2e);
+  color: #fff;
+  padding: 12px 16px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.bt-hit-table th:first-child { border-radius: 10px 0 0 0; }
+.bt-hit-table th:last-child { border-radius: 0 10px 0 0; }
+
+.bt-hit-table td {
+  padding: 10px 16px;
+  text-align: center;
+  border-bottom: 1px solid var(--border);
+}
+
+.bt-hit-table tr:nth-child(even) td { background: rgba(0,0,0,0.02); }
+
+.bt-hit-table .positive { color: #e8343e; font-weight: 600; }
+.bt-hit-table .negative { color: #34c759; font-weight: 600; }
+.bt-hit-table .neutral { color: var(--text-tertiary); }
+
+.bt-hit-table .highlight-row td {
+  background: rgba(0,113,227,0.06);
+  font-weight: 500;
+}
+
+/* Score Chart */
+.bt-chart-canvas {
+  width: 100%;
+  height: 250px;
+  border-radius: var(--radius-md);
+  background: var(--bg-primary);
+}
+
+/* Optimize Weights Card */
+.bt-optimize-card {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.bt-weight-compare {
+  flex: 1;
+  min-width: 300px;
+}
+
+.bt-weight-compare table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.bt-weight-compare th {
+  background: var(--bg-primary);
+  padding: 10px 14px;
+  text-align: left;
+  font-weight: 500;
+  font-size: 13px;
+  color: var(--text-secondary);
+  border-bottom: 2px solid var(--border);
+}
+
+.bt-weight-compare td {
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.bt-weight-compare .positive { color: #e8343e; font-weight: 600; }
+.bt-weight-compare .negative { color: #34c759; font-weight: 600; }
+
+/* GA Evolution */
+.bt-gen-chart-canvas {
+  width: 100%;
+  height: 200px;
+  border-radius: var(--radius-md);
+  background: var(--bg-primary);
+}
+
+/* Section Titles */
+.bt-section-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 24px 0 12px;
+  color: var(--text-primary);
+}
+
+/* Empty State */
+.bt-empty {
+  text-align: center;
+  padding: 48px 20px;
+  color: var(--text-tertiary);
+}
+
+.bt-empty-icon { font-size: 48px; margin-bottom: 12px; }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .bt-config-grid { grid-template-columns: 1fr 1fr; }
+  .bt-weight-grid { grid-template-columns: 1fr 1fr; }
+  .bt-optimize-card { flex-direction: column; }
+  #page-backtest { padding: 0 16px 40px; }
+}

@@ -1,0 +1,520 @@
+// ========== Backtest UI Controller ==========
+
+let btWorker = null;
+
+function initBacktestTab() {
+
+  const container = document.getElementById('page-backtest');
+  if (!container) return;
+  container.innerHTML = buildBacktestHTML();
+
+  // Event listeners
+  document.getElementById('bt-run-btn').addEventListener('click', runBacktest);
+  document.getElementById('bt-cancel-btn').addEventListener('click', cancelBacktest);
+  document.getElementById('bt-optimize-btn').addEventListener('click', runOptimize);
+  document.getElementById('bt-apply-btn').addEventListener('click', applyOptimizedWeights);
+}
+
+function buildBacktestHTML() {
+  return `
+    <div class="bt-card">
+      <div class="bt-card-title">回测配置</div>
+      <div class="bt-config-grid">
+        <div class="bt-config-item">
+          <label class="bt-config-label">回测范围</label>
+          <select class="bt-config-select" id="bt-range">
+            <option value="500">近500期</option>
+            <option value="1000">近1000期</option>
+            <option value="1800" selected>近1800期</option>
+          </select>
+        </div>
+        <div class="bt-config-item">
+          <label class="bt-config-label">每期预测组数</label>
+          <select class="bt-config-select" id="bt-pred-count">
+            <option value="1" selected>1组</option>
+            <option value="3">3组</option>
+            <option value="5">5组</option>
+          </select>
+        </div>
+        <div class="bt-config-item">
+          <label class="bt-config-label">易经权重</label>
+          <select class="bt-config-select" id="bt-yijing">
+            <option value="0">0%</option>
+            <option value="30">30%</option>
+            <option value="50" selected>50%</option>
+            <option value="70">70%</option>
+          </select>
+        </div>
+      </div>
+      <div class="bt-section-title">权重覆盖（留0使用默认值）</div>
+      <div class="bt-weight-grid">
+        <div class="bt-weight-item"><label>频率</label><input type="number" class="bt-config-input" id="bt-w-freq" value="0.28" step="0.01" min="0" max="1"></div>
+        <div class="bt-weight-item"><label>近期趋势</label><input type="number" class="bt-config-input" id="bt-w-recent" value="0.18" step="0.01" min="0" max="1"></div>
+        <div class="bt-weight-item"><label>遗漏值</label><input type="number" class="bt-config-input" id="bt-w-miss" value="0.12" step="0.01" min="0" max="1"></div>
+        <div class="bt-weight-item"><label>销售奖池</label><input type="number" class="bt-config-input" id="bt-w-sp" value="0.12" step="0.01" min="0" max="1"></div>
+        <div class="bt-weight-item"><label>随机扰动</label><input type="number" class="bt-config-input" id="bt-w-pert" value="0.15" step="0.01" min="0" max="1"></div>
+        <div class="bt-weight-item"><label>近期窗口</label><input type="number" class="bt-config-input" id="bt-w-rw" value="10" step="1" min="5" max="30"></div>
+      </div>
+      <div class="bt-btn-group">
+        <button class="bt-btn bt-btn-primary" id="bt-run-btn">开始回测</button>
+        <button class="bt-btn bt-btn-secondary" id="bt-cancel-btn">取消</button>
+      </div>
+      <div class="bt-progress-wrap" id="bt-progress">
+        <div class="bt-progress-bar"><div class="bt-progress-fill" id="bt-progress-fill"></div></div>
+        <div class="bt-progress-text">
+          <span id="bt-progress-label">准备中...</span>
+          <span id="bt-progress-eta"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="bt-card">
+      <div class="bt-card-title">参数优化</div>
+      <div class="bt-config-grid">
+        <div class="bt-config-item">
+          <label class="bt-config-label">优化方法</label>
+          <select class="bt-config-select" id="bt-opt-method">
+            <option value="grid">网格搜索</option>
+            <option value="genetic">遗传算法</option>
+            <option value="grid+genetic" selected>网格+遗传</option>
+          </select>
+        </div>
+        <div class="bt-config-item">
+          <label class="bt-config-label">种群大小(遗传)</label>
+          <input type="number" class="bt-config-input" id="bt-ga-pop" value="30" min="10" max="100">
+        </div>
+        <div class="bt-config-item">
+          <label class="bt-config-label">迭代代数(遗传)</label>
+          <input type="number" class="bt-config-input" id="bt-ga-gen" value="20" min="5" max="50">
+        </div>
+      </div>
+      <div class="bt-btn-group">
+        <button class="bt-btn bt-btn-primary" id="bt-optimize-btn">开始优化</button>
+      </div>
+      <div class="bt-progress-wrap" id="bt-opt-progress">
+        <div class="bt-progress-bar"><div class="bt-progress-fill" id="bt-opt-progress-fill"></div></div>
+        <div class="bt-progress-text">
+          <span id="bt-opt-progress-label">准备中...</span>
+          <span id="bt-opt-progress-eta"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="bt-card" id="bt-result-card" style="display:none">
+      <div class="bt-card-title">回测结果</div>
+      <div id="bt-hit-table-wrap"></div>
+      <div class="bt-section-title">累积平均分数趋势</div>
+      <canvas class="bt-chart-canvas" id="bt-score-chart"></canvas>
+    </div>
+
+    <div class="bt-card" id="bt-optimize-card" style="display:none">
+      <div class="bt-card-title">最优权重推荐</div>
+      <div id="bt-optimize-content"></div>
+      <div style="margin-top:16px">
+        <button class="bt-btn bt-btn-success" id="bt-apply-btn">应用最优权重到推算配置</button>
+      </div>
+    </div>
+
+    <div class="bt-card" id="bt-ga-card" style="display:none">
+      <div class="bt-card-title">遗传算法进化过程</div>
+      <canvas class="bt-gen-chart-canvas" id="bt-ga-chart"></canvas>
+    </div>
+  `;
+}
+
+function getWorker() {
+  if (!btWorker) {
+    btWorker = new Worker('backtest/backtest-worker.js');
+    btWorker.onmessage = handleWorkerMessage;
+  }
+  return btWorker;
+}
+
+function getWeights() {
+  const w = {
+    freq: parseFloat(document.getElementById('bt-w-freq').value) || 0,
+    recent: parseFloat(document.getElementById('bt-w-recent').value) || 0,
+    miss: parseFloat(document.getElementById('bt-w-miss').value) || 0,
+    salesPool: parseFloat(document.getElementById('bt-w-sp').value) || 0,
+    perturbation: parseFloat(document.getElementById('bt-w-pert').value) || 0,
+    recentWindow: parseInt(document.getElementById('bt-w-rw').value) || 10
+  };
+  // Normalize if sum > 1.05 or < 0.95
+  const sum = w.freq + w.recent + w.miss + w.salesPool + w.perturbation;
+  if (sum > 0 && (sum > 1.05 || sum < 0.95)) {
+    const scale = 1 / sum;
+    w.freq = Math.round(w.freq * scale * 100) / 100;
+    w.recent = Math.round(w.recent * scale * 100) / 100;
+    w.miss = Math.round(w.miss * scale * 100) / 100;
+    w.salesPool = Math.round(w.salesPool * scale * 100) / 100;
+    w.perturbation = Math.round((1 - w.freq - w.recent - w.miss - w.salesPool) * 100) / 100;
+    // Update inputs with normalized values
+    document.getElementById('bt-w-freq').value = w.freq;
+    document.getElementById('bt-w-recent').value = w.recent;
+    document.getElementById('bt-w-miss').value = w.miss;
+    document.getElementById('bt-w-sp').value = w.salesPool;
+    document.getElementById('bt-w-pert').value = w.perturbation;
+    showToast(`权重已自动归一化 (原总和: ${sum.toFixed(2)})`);
+  }
+  return w;
+}
+
+function runBacktest() {
+  const worker = getWorker();
+  const srcData = window.LOTTERY_DATA || [];
+  if (srcData.length < 50) { showToast('数据不足，请等待数据加载'); return; }
+  const slimData = srcData.map(d => ({ period: d.period, date: d.date, red: d.red, blue: d.blue, sales: d.sales, pool: d.pool, firstPrizeCount: d.firstPrizeCount }));
+  document.getElementById('bt-progress').classList.add('active');
+  document.getElementById('bt-run-btn').disabled = true;
+  document.getElementById('bt-progress-fill').style.width = '0%';
+  document.getElementById('bt-progress-label').textContent = '回测中...';
+  document.getElementById('bt-progress-eta').textContent = '';
+  worker.postMessage({
+    type: 'backtest',
+    config: {
+      data: slimData,
+      startDraw: parseInt(document.getElementById('bt-range').value),
+      predictionsPerDraw: parseInt(document.getElementById('bt-pred-count').value),
+      yijingPct: parseInt(document.getElementById('bt-yijing').value),
+      weights: getWeights(),
+      includeBaseline: true,
+      sampleRate: 1,
+      seed: 42
+    }
+  });
+}
+
+let gridSearchResult = null;
+
+function runOptimize() {
+  const worker = getWorker();
+  const method = document.getElementById('bt-opt-method').value;
+  const srcData = window.LOTTERY_DATA || [];
+  if (srcData.length < 50) { showToast('数据不足，请等待数据加载'); return; }
+  const slimData = srcData.map(d => ({ period: d.period, date: d.date, red: d.red, blue: d.blue, sales: d.sales, pool: d.pool, firstPrizeCount: d.firstPrizeCount }));
+  document.getElementById('bt-opt-progress').classList.add('active');
+  document.getElementById('bt-optimize-btn').disabled = true;
+  document.getElementById('bt-opt-progress-fill').style.width = '0%';
+  document.getElementById('bt-opt-progress-label').textContent = '优化中...';
+  document.getElementById('bt-opt-progress-eta').textContent = '';
+
+  if (method === 'grid' || method === 'grid+genetic') {
+    worker.postMessage({
+      type: 'gridSearch',
+      config: {
+        data: slimData,
+        startDraw: parseInt(document.getElementById('bt-range').value),
+        predictionsPerDraw: parseInt(document.getElementById('bt-pred-count').value),
+        yijingPct: parseInt(document.getElementById('bt-yijing').value),
+        coarseSampleRate: 10,
+        topN: 10,
+        seed: 42
+      }
+    });
+  } else if (method === 'genetic') {
+    worker.postMessage({
+      type: 'geneticSearch',
+      config: {
+        data: slimData,
+        startDraw: parseInt(document.getElementById('bt-range').value),
+        predictionsPerDraw: parseInt(document.getElementById('bt-pred-count').value),
+        yijingPct: parseInt(document.getElementById('bt-yijing').value),
+        populationSize: parseInt(document.getElementById('bt-ga-pop').value),
+        generations: parseInt(document.getElementById('bt-ga-gen').value),
+        mutationRate: 0.15,
+        sampleRate: 5,
+        seed: 42,
+        initialPopulation: []
+      }
+    });
+  }
+}
+
+function cancelBacktest() {
+  if (btWorker) btWorker.postMessage({ type: 'cancel' });
+  document.getElementById('bt-run-btn').disabled = false;
+  document.getElementById('bt-optimize-btn').disabled = false;
+  document.getElementById('bt-progress').classList.remove('active');
+  document.getElementById('bt-opt-progress').classList.remove('active');
+}
+
+function handleWorkerMessage(e) {
+  const msg = e.data;
+  if (msg.type === 'progress') {
+    updateProgress(msg.payload);
+  } else if (msg.type === 'backtestResult') {
+    document.getElementById('bt-run-btn').disabled = false;
+    document.getElementById('bt-progress').classList.remove('active');
+    renderBacktestResult(msg.payload);
+  } else if (msg.type === 'gridSearchResult') {
+    gridSearchResult = msg.payload;
+    const method = document.getElementById('bt-opt-method').value;
+    if (method === 'grid+genetic') {
+      // Start GA with grid search top results as initial population
+      const worker = getWorker();
+      const srcData = window.LOTTERY_DATA || [];
+  const slimData = srcData.map(d => ({ period: d.period, date: d.date, red: d.red, blue: d.blue, sales: d.sales, pool: d.pool, firstPrizeCount: d.firstPrizeCount }));
+      worker.postMessage({
+        type: 'geneticSearch',
+        config: {
+          data: slimData,
+          startDraw: parseInt(document.getElementById('bt-range').value),
+          predictionsPerDraw: parseInt(document.getElementById('bt-pred-count').value),
+          yijingPct: parseInt(document.getElementById('bt-yijing').value),
+          populationSize: parseInt(document.getElementById('bt-ga-pop').value),
+          generations: parseInt(document.getElementById('bt-ga-gen').value),
+          mutationRate: 0.15,
+          sampleRate: 5,
+          seed: 42,
+          initialPopulation: msg.payload.fineResults.map(r => r.weights)
+        }
+      });
+    } else {
+      document.getElementById('bt-optimize-btn').disabled = false;
+      document.getElementById('bt-opt-progress').classList.remove('active');
+      renderOptimizedWeights(msg.payload.best.weights, msg.payload.best.avgScore);
+    }
+  } else if (msg.type === 'geneticResult') {
+    document.getElementById('bt-optimize-btn').disabled = false;
+    document.getElementById('bt-opt-progress').classList.remove('active');
+    const payload = msg.payload;
+    renderOptimizedWeights(payload.bestWeights, payload.genHistory[payload.genHistory.length - 1]?.bestScore || 0);
+    renderGAChart(payload.genHistory);
+    if (payload.finalResult) {
+      renderBacktestResult(payload.finalResult);
+    }
+  } else if (msg.type === 'error') {
+    document.getElementById('bt-run-btn').disabled = false;
+    document.getElementById('bt-optimize-btn').disabled = false;
+    document.getElementById('bt-progress').classList.remove('active');
+    document.getElementById('bt-opt-progress').classList.remove('active');
+    alert('错误: ' + msg.payload.message);
+  }
+}
+
+function updateProgress(payload) {
+  const isOpt = payload.phase === 'gridSearch-coarse' || payload.phase === 'gridSearch-fine' || payload.phase === 'geneticSearch';
+  const wrap = isOpt ? 'bt-opt-progress' : 'bt-progress';
+  const fill = isOpt ? 'bt-opt-progress-fill' : 'bt-progress-fill';
+  const label = isOpt ? 'bt-opt-progress-label' : 'bt-progress-label';
+  const eta = isOpt ? 'bt-opt-progress-eta' : 'bt-progress-eta';
+
+  const pct = payload.total > 0 ? Math.round((payload.current / payload.total) * 100) : 0;
+  document.getElementById(fill).style.width = pct + '%';
+
+  const phaseNames = { backtest: '回测', 'gridSearch-coarse': '粗搜索', 'gridSearch-fine': '细搜索', geneticSearch: '遗传进化' };
+  let text = `${phaseNames[payload.phase] || payload.phase} ${pct}%`;
+  if (payload.bestScore !== undefined) text += ` | 最佳: ${payload.bestScore.toFixed(3)}`;
+  document.getElementById(label).textContent = text;
+  document.getElementById(eta).textContent = payload.eta > 0 ? `预计剩余 ${Math.round(payload.eta / 1000)}s` : '';
+}
+
+function renderBacktestResult(result) {
+  document.getElementById('bt-result-card').style.display = '';
+  const t = result.tracker;
+  const bt = result.baselineTracker;
+  const total = t.totalPredictions || 1;
+  const bTotal = bt ? (bt.totalPredictions || 1) : 1;
+
+  const rows = [
+    ['蓝球命中', t.blue.hit / total, bt ? bt.blue.hit / bTotal : null],
+    ['红球 0/6', t.red[0] / total, bt ? bt.red[0] / bTotal : null],
+    ['红球 1/6', t.red[1] / total, bt ? bt.red[1] / bTotal : null],
+    ['红球 2/6', t.red[2] / total, bt ? bt.red[2] / bTotal : null],
+    ['红球 3/6', t.red[3] / total, bt ? bt.red[3] / bTotal : null, true],
+    ['红球 4/6', t.red[4] / total, bt ? bt.red[4] / bTotal : null, true],
+    ['红球 5/6', t.red[5] / total, bt ? bt.red[5] / bTotal : null, true],
+    ['红球 6/6', t.red[6] / total, bt ? bt.red[6] / bTotal : null, true],
+    ['3红+蓝', t.combined['3+1'] / total, bt ? bt.combined['3+1'] / bTotal : null, true],
+    ['4红+蓝', t.combined['4+1'] / total, bt ? bt.combined['4+1'] / bTotal : null, true],
+    ['5红+蓝', t.combined['5+1'] / total, bt ? bt.combined['5+1'] / bTotal : null, true],
+  ];
+
+  let html = '<table class="bt-hit-table"><thead><tr><th>命中级别</th><th>加权预测</th>';
+  if (bt) html += '<th>随机基线</th><th>提升</th>';
+  html += '</tr></thead><tbody>';
+
+  for (const [name, rate, bRate, highlight] of rows) {
+    html += `<tr class="${highlight ? 'highlight-row' : ''}"><td>${name}</td><td>${(rate * 100).toFixed(2)}%</td>`;
+    if (bt) {
+      html += `<td>${(bRate * 100).toFixed(2)}%</td>`;
+      const diff = (rate - bRate) * 100;
+      const cls = diff > 0.01 ? 'positive' : diff < -0.01 ? 'negative' : 'neutral';
+      html += `<td class="${cls}">${diff > 0 ? '+' : ''}${diff.toFixed(2)}%</td>`;
+    }
+    html += '</tr>';
+  }
+
+  // Average score row
+  html += `<tr class="highlight-row"><td><b>平均分数</b></td><td><b>${(t.totalScore / total).toFixed(3)}</b></td>`;
+  if (bt) {
+    html += `<td><b>${(bt.totalScore / bTotal).toFixed(3)}</b></td>`;
+    const diff = (t.totalScore / total) - (bt.totalScore / bTotal);
+    const cls = diff > 0 ? 'positive' : diff < 0 ? 'negative' : 'neutral';
+    html += `<td class="${cls}"><b>${diff > 0 ? '+' : ''}${diff.toFixed(3)}</b></td>`;
+  }
+  html += '</tr></tbody></table>';
+  document.getElementById('bt-hit-table-wrap').innerHTML = html;
+
+  // Score chart
+  renderScoreChart(result.cumulativeScores, result.baselineCumulative);
+}
+
+function renderScoreChart(scores, baseline) {
+  const canvas = document.getElementById('bt-score-chart');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = canvas.offsetWidth * dpr;
+  canvas.height = canvas.offsetHeight * dpr;
+  ctx.scale(dpr, dpr);
+  const w = canvas.offsetWidth, h = canvas.offsetHeight;
+  const pad = { top: 20, right: 20, bottom: 30, left: 50 };
+  const cw = w - pad.left - pad.right, ch = h - pad.top - pad.bottom;
+
+  ctx.clearRect(0, 0, w, h);
+
+  if (!scores || scores.length === 0) return;
+
+  const allVals = [...scores, ...(baseline || [])];
+  const minV = Math.min(...allVals) * 0.95;
+  const maxV = Math.max(...allVals) * 1.05;
+
+  // Grid
+  ctx.strokeStyle = '#e5e5ea';
+  ctx.lineWidth = 0.5;
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.top + (ch / 4) * i;
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + cw, y); ctx.stroke();
+    ctx.fillStyle = '#86868b';
+    ctx.font = '11px -apple-system, sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText((maxV - (maxV - minV) * i / 4).toFixed(2), pad.left - 6, y + 4);
+  }
+
+  // Lines
+  function drawLine(data, color, dash) {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.setLineDash(dash);
+    ctx.beginPath();
+    for (let i = 0; i < data.length; i++) {
+      const x = pad.left + (i / Math.max(data.length - 1, 1)) * cw;
+      const y = pad.top + (1 - (data[i] - minV) / (maxV - minV)) * ch;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  drawLine(scores, '#0071e3', []);
+  if (baseline) drawLine(baseline, '#86868b', [5, 3]);
+
+  // Legend
+  ctx.font = '12px -apple-system, sans-serif';
+  ctx.fillStyle = '#0071e3'; ctx.fillRect(pad.left, h - 14, 16, 3);
+  ctx.fillStyle = '#1d1d1f'; ctx.textAlign = 'left'; ctx.fillText('加权预测', pad.left + 20, h - 10);
+  if (baseline) {
+    ctx.fillStyle = '#86868b'; ctx.setLineDash([5,3]); ctx.strokeStyle = '#86868b'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(pad.left + 110, h - 12); ctx.lineTo(pad.left + 126, h - 12); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#1d1d1f'; ctx.fillText('随机基线', pad.left + 130, h - 10);
+  }
+}
+
+function renderOptimizedWeights(weights, score) {
+  document.getElementById('bt-optimize-card').style.display = '';
+  const orig = { freq: 0.28, recent: 0.18, miss: 0.12, salesPool: 0.12, perturbation: 0.15, recentWindow: 10 };
+  const names = { freq: '频率权重', recent: '近期趋势', miss: '遗漏值', salesPool: '销售奖池', perturbation: '随机扰动', recentWindow: '近期窗口' };
+
+  let html = '<div class="bt-optimize-card"><div class="bt-weight-compare"><table><thead><tr><th>参数</th><th>原始</th><th>优化后</th><th>变化</th></tr></thead><tbody>';
+  for (const key of ['freq', 'recent', 'miss', 'salesPool', 'perturbation', 'recentWindow']) {
+    const o = orig[key], n = weights[key];
+    const diff = key === 'recentWindow' ? n - o : Math.round((n - o) * 100) / 100;
+    const cls = diff > 0 ? 'positive' : diff < 0 ? 'negative' : '';
+    const sign = diff > 0 ? '+' : '';
+    html += `<tr><td>${names[key]}</td><td>${o}</td><td>${Math.round(n * 100) / 100}</td><td class="${cls}">${sign}${diff}</td></tr>`;
+  }
+  // Score row
+  const defaultScore = 1.735; // approximate default weight avg score
+  const scoreDiff = score - defaultScore;
+  const scoreCls = scoreDiff > 0 ? 'positive' : scoreDiff < 0 ? 'negative' : '';
+  const scoreSign = scoreDiff > 0 ? '+' : '';
+  html += `<tr style="font-weight:600;border-top:2px solid var(--border)"><td>平均分数</td><td>${defaultScore.toFixed(3)}</td><td>${score.toFixed(3)}</td><td class="${scoreCls}">${scoreSign}${scoreDiff.toFixed(3)}</td></tr>`;
+  html += '</tbody></table></div></div>';
+  document.getElementById('bt-optimize-content').innerHTML = html;
+
+  // Store optimized weights for apply button
+  window.__btOptimizedWeights = weights;
+}
+
+function renderGAChart(genHistory) {
+  document.getElementById('bt-ga-card').style.display = '';
+  const canvas = document.getElementById('bt-ga-chart');
+  if (!canvas || !genHistory || genHistory.length === 0) return;
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = canvas.offsetWidth * dpr;
+  canvas.height = canvas.offsetHeight * dpr;
+  ctx.scale(dpr, dpr);
+  const w = canvas.offsetWidth, h = canvas.offsetHeight;
+  const pad = { top: 20, right: 20, bottom: 30, left: 50 };
+  const cw = w - pad.left - pad.right, ch = h - pad.top - pad.bottom;
+
+  ctx.clearRect(0, 0, w, h);
+  const bestScores = genHistory.map(g => g.bestScore);
+  const avgScores = genHistory.map(g => g.avgScore);
+  const allV = [...bestScores, ...avgScores];
+  const minV = Math.min(...allV) * 0.95, maxV = Math.max(...allV) * 1.05;
+
+  function drawLine(data, color) {
+    ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.beginPath();
+    for (let i = 0; i < data.length; i++) {
+      const x = pad.left + (i / Math.max(data.length - 1, 1)) * cw;
+      const y = pad.top + (1 - (data[i] - minV) / (maxV - minV)) * ch;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+
+  drawLine(bestScores, '#0071e3');
+  drawLine(avgScores, '#86868b');
+
+  // Legend
+  ctx.font = '12px -apple-system, sans-serif';
+  ctx.fillStyle = '#0071e3'; ctx.fillRect(pad.left, h - 14, 16, 3);
+  ctx.fillStyle = '#1d1d1f'; ctx.textAlign = 'left'; ctx.fillText('最佳分数', pad.left + 20, h - 10);
+  ctx.fillStyle = '#86868b'; ctx.fillRect(pad.left + 100, h - 14, 16, 3);
+  ctx.fillText('平均分数', pad.left + 120, h - 10);
+}
+
+function applyOptimizedWeights() {
+  const w = window.__btOptimizedWeights;
+  if (!w) return;
+
+  // Update backtest weight inputs
+  document.getElementById('bt-w-freq').value = Math.round(w.freq * 100) / 100;
+  document.getElementById('bt-w-recent').value = Math.round(w.recent * 100) / 100;
+  document.getElementById('bt-w-miss').value = Math.round(w.miss * 100) / 100;
+  document.getElementById('bt-w-sp').value = Math.round(w.salesPool * 100) / 100;
+  document.getElementById('bt-w-pert').value = Math.round(w.perturbation * 100) / 100;
+  document.getElementById('bt-w-rw').value = w.recentWindow;
+
+  // Update the main predict function's hardcoded weights by storing override
+  window.__predictionWeightOverride = w;
+
+  showToast('最优权重已应用！下次推算将使用优化后的权重。');
+}
+
+function showToast(msg) {
+  let toast = document.getElementById('autoToast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'autoToast';
+    toast.style.cssText = 'position:fixed;bottom:40px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.75);color:#fff;padding:10px 24px;border-radius:12px;font-size:14px;z-index:300;opacity:0;transition:opacity 0.3s;pointer-events:none;';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = msg;
+  toast.style.opacity = '1';
+  setTimeout(() => { toast.style.opacity = '0'; }, 2500);
+}

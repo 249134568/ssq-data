@@ -1,0 +1,54 @@
+{
+  "name": "ssq-data",
+  "version": "1.0.0",
+  "description": "双色球数据分析工具",
+  "main": "main.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "electron .",
+    "build": "electron-builder --win",
+    "build:dir": "electron-builder --win --dir"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "node-cron": "^3.0.3",
+    "playwright": "^1.61.0"
+  },
+  "devDependencies": {
+    "electron": "^35.0.0",
+    "electron-builder": "^26.0.0"
+  },
+  "build": {
+    "appId": "com.ssq.data",
+    "productName": "双色球数据分析",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "server.js",
+      "index.html",
+      "backtest/**/*",
+      "package.json",
+      "node_modules/**/*"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "extraResources": [
+      {
+        "from": "data.json",
+        "to": "data.json"
+      }
+    ]
+  }
+}
