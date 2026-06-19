@@ -920,7 +920,7 @@ body {
   .card-title { font-size: 14px; }
   .card-body { padding: 6px 10px 10px; }
 
-  /* ===== History: full-width card, card-like rows ===== */
+  /* ===== History: full-width card ===== */
   #page-history .card {
     border-radius: 0;
     margin: 0 -4px 10px;
@@ -932,74 +932,52 @@ body {
   #page-history .card-body { padding: 0; }
   #page-history .search-bar { padding: 8px 10px 0; }
 
-  /* History rows as card-like items */
-  .history-table { display: block; width: 100%; }
-  .history-table thead { display: none; }
-  .history-table tbody { display: block; }
-  .history-table tbody tr { display: block; }
-  .history-row-main {
-    display: flex !important;
-    align-items: flex-start;
-    gap: 6px;
-    padding: 8px 10px;
-    border-bottom: 1px solid var(--border);
-    cursor: pointer;
+  /* History table: normal table, compact to fit screen */
+  .history-table-wrap {
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
   }
-  .history-row-main td { display: block; padding: 0; border: none; }
-  .history-row-main td:first-child { display: none; }
-  .history-row-main td:nth-child(2) { /* period */
-    flex: 0 0 24px;
-    font-size: 9px;
-    line-height: 1.1;
-    writing-mode: vertical-rl;
-    text-orientation: mixed;
+  .history-table {
+    width: 100%;
+    table-layout: fixed;
+    font-size: 11px;
+  }
+  .history-table thead { display: table-header-group; }
+  .history-table thead th {
+    padding: 6px 4px;
+    font-size: 11px;
     font-weight: 600;
-    color: var(--text-secondary);
-    letter-spacing: 1px;
-  }
-  .history-row-main td:nth-child(3) { /* date */
-    flex: 0 0 auto;
-    font-size: 11px;
-    color: var(--text-tertiary);
+    text-align: center;
     white-space: nowrap;
-    padding-top: 2px;
   }
-  .history-row-main td:nth-child(4) { /* balls */
-    flex: 1;
-  }
-  .history-row-main td:nth-child(5) { /* sales */
-    flex: 0 0 auto;
+  .history-table thead th:nth-child(1) { width: 22px; }  /* arrow */
+  .history-table thead th:nth-child(2) { width: 58px; }  /* period */
+  .history-table thead th:nth-child(3) { width: 62px; }  /* date */
+  /* col 4 balls = auto */
+  .history-table thead th:nth-child(5) { width: 68px; }  /* sales */
+  .history-table tbody td {
+    padding: 4px 2px;
     font-size: 11px;
-    color: var(--text-tertiary);
-    text-align: right;
-    padding-top: 2px;
+    vertical-align: top;
   }
-  .balls-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 3px;
-    align-items: center;
-  }
-  .ball-sm { width: 22px; height: 22px; font-size: 10px; }
-  .balls-blue-row {
-    display: flex;
-    gap: 3px;
-    margin-top: 2px;
-  }
+  .history-table tbody td:nth-child(1) { text-align: center; vertical-align: middle; }
+  .history-table tbody td:nth-child(5) { font-size: 10px; color: var(--text-tertiary); text-align: right; }
+  .period-cell { font-size: 10px; font-weight: 600; }
+  .date-cell { font-size: 10px; }
 
-  /* Detail panel: compact prize cards */
-  .history-row-detail { display: block; }
-  .history-row-detail td { display: block; padding: 0 !important; }
-  .detail-panel {
-    padding: 8px 10px 12px;
-    border-top: 1px solid var(--border);
-    background: var(--bg-primary);
-  }
+  /* Balls: red row + blue row */
+  .balls-row { gap: 2px; flex-wrap: nowrap; }
+  .ball-sm { width: 20px; height: 20px; font-size: 9px; }
+  .balls-blue-row { gap: 2px; margin-top: 2px; }
+
+  /* Detail panel */
+  .detail-panel { padding: 8px 10px 12px; }
   .detail-grid { grid-template-columns: 1fr 1fr; gap: 4px; }
   .detail-item { padding: 4px 6px; font-size: 11px; }
   .detail-label { font-size: 10px; }
 
-  /* Prize display: horizontal compact cards instead of table */
+  /* Prize display: compact card grid */
   .latest-prize-section { margin-top: 8px !important; }
   .latest-prize-title { font-size: 12px; margin-bottom: 6px; text-align: center; }
   .prize-cards {
@@ -1011,7 +989,7 @@ body {
     background: #fff;
     border: 1px solid #f0e0e0;
     border-radius: 8px;
-    padding: 6px 8px;
+    padding: 5px 6px;
     text-align: center;
   }
   .prize-card-item.first-prize {
@@ -1020,8 +998,8 @@ body {
     border-color: #e68a00;
   }
   .prize-card-name { font-size: 10px; color: #c92a34; font-weight: 700; }
-  .prize-card-item.first-prize .prize-card-name { color: #d4af37; font-size: 12px; }
-  .prize-card-count { font-size: 12px; font-weight: 700; color: var(--text-primary); }
+  .prize-card-item.first-prize .prize-card-name { color: #d4af37; font-size: 11px; }
+  .prize-card-count { font-size: 11px; font-weight: 700; color: var(--text-primary); }
   .prize-card-amount { font-size: 10px; color: #c92a34; font-weight: 600; }
   .prize-card-item.first-prize .prize-card-amount { color: #d4af37; }
   .latest-prize-table { display: none; }
@@ -1033,18 +1011,6 @@ body {
   .detail-grid { grid-template-columns: 1fr 1fr; gap: 4px; }
   .detail-item { padding: 5px 8px; font-size: 11px; }
   .detail-label { font-size: 10px; }
-
-  /* Prize table in history: scrollable */
-  .latest-prize-section { font-size: 11px; margin-top: 10px !important; }
-  .latest-prize-title { font-size: 12px; margin-bottom: 6px; }
-  .latest-prize-table { font-size: 10px; min-width: 260px; }
-  .latest-prize-table thead th { padding: 5px 6px; font-size: 9px; }
-  .latest-prize-table tbody td { padding: 4px 6px; font-size: 10px; }
-  .latest-prize-table .lp-name { font-size: 10px; padding: 3px 6px; }
-  .latest-prize-table .lp-count { font-size: 10px; padding: 3px 6px; }
-  .latest-prize-table .lp-amount { font-size: 10px; padding: 3px 6px; }
-  .latest-prize-table .lp-name-1 { font-size: 12px; }
-  .detail-location { font-size: 11px !important; }
 
   /* ===== Predict config: single column ===== */
   .predict-config { grid-template-columns: 1fr 1fr; gap: 6px; }
