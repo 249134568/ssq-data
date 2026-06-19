@@ -142,20 +142,6 @@ body {
 .nav-refresh.spinning svg { animation: spin 0.8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* Nav sub bar (update button) */
-.nav-sub {
-  display: none;
-  padding: 4px 12px 6px;
-  border-bottom: 0.5px solid var(--border);
-  background: var(--bg-glass);
-}
-.nav-sub .nav-refresh {
-  font-size: 11px;
-  padding: 3px 10px;
-  min-height: 28px;
-  border-radius: 6px;
-}
-
 /* ========== Hero Section ========== */
 .hero {
   text-align: center;
@@ -881,7 +867,7 @@ body {
   .nav-inner {
     height: auto;
     flex-wrap: wrap;
-    padding: 6px 8px 2px;
+    padding: 6px 8px 4px;
     gap: 0;
   }
   .nav-logo { display: none; }
@@ -894,10 +880,17 @@ body {
   }
   .nav-tab { padding: 8px 10px; font-size: 13px; flex: 0 0 auto; }
 
-  /* Update button in sub bar */
-  .nav-inner .nav-refresh { display: none; }
-  .nav-sub { display: flex; justify-content: flex-end; }
-  .nav-refresh { padding: 3px 10px; font-size: 11px; }
+  /* Update button: second row right-aligned */
+  .nav-refresh {
+    order: 10;
+    width: 100%;
+    justify-content: flex-end;
+    padding: 2px 8px 4px;
+    font-size: 11px;
+    border: none;
+    background: none;
+    min-height: 24px;
+  }
   .nav-refresh svg { width: 12px; height: 12px; }
 
   /* Main content: tighter padding */
@@ -923,16 +916,26 @@ body {
   .card-title { font-size: 14px; }
   .card-body { padding: 6px 10px 10px; }
 
-  /* ===== History Table: scrollable, compact ===== */
+  /* ===== History Table: fit screen, no scroll ===== */
   .history-table-wrap {
-    margin: 0 -10px;
-    padding: 0 4px;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+    margin: 0 -6px;
+    padding: 0 2px;
+    overflow-x: hidden;
   }
-  .history-table { font-size: 11px; min-width: 420px; }
-  .history-table thead th { padding: 6px 6px; font-size: 10px; }
-  .history-table tbody td { padding: 6px 6px; }
+  .history-table { font-size: 11px; width: 100%; table-layout: fixed; }
+  .history-table thead th { padding: 5px 2px; font-size: 9px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left; }
+  .history-table thead th:nth-child(1) { width: 20px; text-align: center; }
+  .history-table thead th:nth-child(2) { width: 50px; }
+  .history-table thead th:nth-child(3) { width: 52px; }
+  .history-table thead th:nth-child(5) { width: auto; }
+  .history-table tbody td { padding: 5px 2px; }
+  .history-table tbody td:nth-child(1) { text-align: center; }
+  .history-table tbody td:nth-child(4) { padding-left: 0; padding-right: 0; }
+  .period-cell { font-size: 10px; }
+  .date-cell { font-size: 9px; }
+  .balls-row { gap: 1px; flex-wrap: nowrap; justify-content: flex-start; margin: 0; padding: 0; }
+  .ball-sm { width: 18px; height: 18px; font-size: 9px; }
+  .history-table td:nth-child(5) { font-size: 9px; }
   .period-cell { font-size: 11px; }
   .date-cell { font-size: 10px; }
 
@@ -983,7 +986,7 @@ body {
   .latest-date { font-size: 11px; }
 
   /* Date input: ensure full date visible */
-  .config-input[type="date"] { min-width: 0; font-size: 14px; padding: 8px 10px; }
+  .config-input[type="date"] { min-width: 0; font-size: 12px; padding: 6px 4px; }
 
   /* ===== Freq grid: compact ===== */
   .freq-grid { grid-template-columns: repeat(7, 1fr); gap: 2px; }
@@ -1054,8 +1057,13 @@ body {
   .hero h1 { font-size: 28px !important; }
   .ball { width: 30px; height: 30px; font-size: 13px; }
   .predict-config { grid-template-columns: repeat(2, 1fr); }
-  .history-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  .history-table { min-width: 500px; }
+  .history-table-wrap { overflow-x: hidden; }
+  .history-table { table-layout: fixed; width: 100%; }
+  .history-table thead th { font-size: 11px; padding: 8px 6px; }
+  .history-table tbody td { padding: 8px 6px; }
+  .ball-sm { width: 22px; height: 22px; font-size: 10px; }
+  .balls-row { gap: 2px; }
+  .config-input[type="date"] { font-size: 13px; padding: 8px 6px; }
 }
 
 /* ========== Empty State ========== */
@@ -1360,10 +1368,8 @@ body {
       <li class="nav-tab" data-page="yijing">易经原理</li>
       <li class="nav-tab" data-page="backtest">回测系统</li>
     </ul>
-  </div>
-  <div class="nav-sub">
     <button class="nav-refresh" id="navRefresh" onclick="manualRefresh()" title="检查更新">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.3"/></svg>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.3"/></svg>
       <span>检查更新</span>
     </button>
   </div>
