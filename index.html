@@ -218,6 +218,13 @@ body {
   flex-wrap: wrap;
 }
 
+.balls-blue-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+}
+
 .ball {
   width: 40px;
   height: 40px;
@@ -867,7 +874,7 @@ body {
   .nav-inner {
     height: auto;
     flex-wrap: wrap;
-    padding: 6px 8px 4px;
+    padding: 6px 4px 4px;
     gap: 0;
   }
   .nav-logo { display: none; }
@@ -875,21 +882,18 @@ body {
     display: flex;
     flex-wrap: wrap;
     gap: 0;
-    width: 100%;
+    flex: 1;
     overflow: visible;
   }
-  .nav-tab { padding: 8px 10px; font-size: 13px; flex: 0 0 auto; }
+  .nav-tab { padding: 8px 9px; font-size: 13px; flex: 0 0 auto; }
 
-  /* Update button: second row right-aligned */
+  /* Update button: inline after last tab */
   .nav-refresh {
-    order: 10;
-    width: 100%;
-    justify-content: flex-end;
-    padding: 2px 8px 4px;
+    padding: 4px 8px;
     font-size: 11px;
-    border: none;
-    background: none;
-    min-height: 24px;
+    min-height: 28px;
+    margin-left: auto;
+    flex: 0 0 auto;
   }
   .nav-refresh svg { width: 12px; height: 12px; }
 
@@ -916,28 +920,113 @@ body {
   .card-title { font-size: 14px; }
   .card-body { padding: 6px 10px 10px; }
 
-  /* ===== History Table: fit screen, no scroll ===== */
-  .history-table-wrap {
-    margin: 0 -6px;
-    padding: 0 2px;
-    overflow-x: hidden;
+  /* ===== History: full-width card, card-like rows ===== */
+  #page-history .card {
+    border-radius: 0;
+    margin: 0 -4px 10px;
+    box-shadow: none;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
   }
-  .history-table { font-size: 11px; width: 100%; table-layout: fixed; }
-  .history-table thead th { padding: 5px 2px; font-size: 9px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left; }
-  .history-table thead th:nth-child(1) { width: 20px; text-align: center; }
-  .history-table thead th:nth-child(2) { width: 50px; }
-  .history-table thead th:nth-child(3) { width: 52px; }
-  .history-table thead th:nth-child(5) { width: auto; }
-  .history-table tbody td { padding: 5px 2px; }
-  .history-table tbody td:nth-child(1) { text-align: center; }
-  .history-table tbody td:nth-child(4) { padding-left: 0; padding-right: 0; }
-  .period-cell { font-size: 10px; }
-  .date-cell { font-size: 9px; }
-  .balls-row { gap: 1px; flex-wrap: nowrap; justify-content: flex-start; margin: 0; padding: 0; }
-  .ball-sm { width: 18px; height: 18px; font-size: 9px; }
-  .history-table td:nth-child(5) { font-size: 9px; }
-  .period-cell { font-size: 11px; }
-  .date-cell { font-size: 10px; }
+  #page-history .card-header { padding: 8px 10px 4px; }
+  #page-history .card-body { padding: 0; }
+  #page-history .search-bar { padding: 8px 10px 0; }
+
+  /* History rows as card-like items */
+  .history-table { display: block; width: 100%; }
+  .history-table thead { display: none; }
+  .history-table tbody { display: block; }
+  .history-table tbody tr { display: block; }
+  .history-row-main {
+    display: flex !important;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+  }
+  .history-row-main td { display: block; padding: 0; border: none; }
+  .history-row-main td:first-child { display: none; }
+  .history-row-main td:nth-child(2) { /* period */
+    flex: 0 0 24px;
+    font-size: 9px;
+    line-height: 1.1;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    font-weight: 600;
+    color: var(--text-secondary);
+    letter-spacing: 1px;
+  }
+  .history-row-main td:nth-child(3) { /* date */
+    flex: 0 0 auto;
+    font-size: 11px;
+    color: var(--text-tertiary);
+    white-space: nowrap;
+    padding-top: 2px;
+  }
+  .history-row-main td:nth-child(4) { /* balls */
+    flex: 1;
+  }
+  .history-row-main td:nth-child(5) { /* sales */
+    flex: 0 0 auto;
+    font-size: 11px;
+    color: var(--text-tertiary);
+    text-align: right;
+    padding-top: 2px;
+  }
+  .balls-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+    align-items: center;
+  }
+  .ball-sm { width: 22px; height: 22px; font-size: 10px; }
+  .balls-blue-row {
+    display: flex;
+    gap: 3px;
+    margin-top: 2px;
+  }
+
+  /* Detail panel: compact prize cards */
+  .history-row-detail { display: block; }
+  .history-row-detail td { display: block; padding: 0 !important; }
+  .detail-panel {
+    padding: 8px 10px 12px;
+    border-top: 1px solid var(--border);
+    background: var(--bg-primary);
+  }
+  .detail-grid { grid-template-columns: 1fr 1fr; gap: 4px; }
+  .detail-item { padding: 4px 6px; font-size: 11px; }
+  .detail-label { font-size: 10px; }
+
+  /* Prize display: horizontal compact cards instead of table */
+  .latest-prize-section { margin-top: 8px !important; }
+  .latest-prize-title { font-size: 12px; margin-bottom: 6px; text-align: center; }
+  .prize-cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+  }
+  .prize-card-item {
+    background: #fff;
+    border: 1px solid #f0e0e0;
+    border-radius: 8px;
+    padding: 6px 8px;
+    text-align: center;
+  }
+  .prize-card-item.first-prize {
+    grid-column: 1 / -1;
+    background: linear-gradient(135deg, #fff8f0, #fff3e6);
+    border-color: #e68a00;
+  }
+  .prize-card-name { font-size: 10px; color: #c92a34; font-weight: 700; }
+  .prize-card-item.first-prize .prize-card-name { color: #d4af37; font-size: 12px; }
+  .prize-card-count { font-size: 12px; font-weight: 700; color: var(--text-primary); }
+  .prize-card-amount { font-size: 10px; color: #c92a34; font-weight: 600; }
+  .prize-card-item.first-prize .prize-card-amount { color: #d4af37; }
+  .latest-prize-table { display: none; }
+
+  .detail-location { font-size: 11px !important; }
 
   /* Detail panel: compact */
   .detail-panel { padding: 10px 8px; }
@@ -1057,12 +1146,6 @@ body {
   .hero h1 { font-size: 28px !important; }
   .ball { width: 30px; height: 30px; font-size: 13px; }
   .predict-config { grid-template-columns: repeat(2, 1fr); }
-  .history-table-wrap { overflow-x: hidden; }
-  .history-table { table-layout: fixed; width: 100%; }
-  .history-table thead th { font-size: 11px; padding: 8px 6px; }
-  .history-table tbody td { padding: 8px 6px; }
-  .ball-sm { width: 22px; height: 22px; font-size: 10px; }
-  .balls-row { gap: 2px; }
   .config-input[type="date"] { font-size: 13px; padding: 8px 6px; }
 }
 
@@ -1944,6 +2027,18 @@ function renderHistoryTable() {
             </tr>`;
           }).join('');
 
+          // Prize cards for mobile detail view
+          const prizeCards = prizeNames.map((name, pidx) => {
+            const p = d.prizes && d.prizes[name];
+            if (!p) return '';
+            const isFirst = pidx === 0;
+            return `<div class="prize-card-item${isFirst ? ' first-prize' : ''}">
+              <div class="prize-card-name">${name}</div>
+              <div class="prize-card-count">${p.count}注</div>
+              <div class="prize-card-amount">${Number(p.amount).toLocaleString()}元</div>
+            </div>`;
+          }).join('');
+
           return `<tr class="history-row-main" data-idx="${idx}">
             <td><span class="expand-arrow">▶</span></td>
             <td class="period-cell">${d.period}</td>
@@ -1951,6 +2046,8 @@ function renderHistoryTable() {
             <td>
               <div class="balls-row">
                 ${d.red.map(r => `<span class="ball ball-red ball-sm">${r}</span>`).join('')}
+              </div>
+              <div class="balls-blue-row">
                 <span class="ball ball-blue ball-sm">${d.blue}</span>
               </div>
             </td>
@@ -1968,10 +2065,10 @@ function renderHistoryTable() {
                     <span class="detail-label">奖池累计</span>
                     <span class="detail-value">${d.pool || '-'} 元</span>
                   </div>
-
                 </div>
                 <div class="latest-prize-section" style="max-width:100%;margin-top:20px">
                   <div class="latest-prize-title">中 奖 情 况</div>
+                  <div class="prize-cards">${prizeCards}</div>
                   <table class="latest-prize-table">
                     <thead><tr><th>奖级</th><th>中奖注数（注）</th><th>单注中奖金额（元）</th></tr></thead>
                     <tbody>${prizeRows}</tbody>
