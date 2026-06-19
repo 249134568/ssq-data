@@ -1041,8 +1041,22 @@ body {
   .latest-period { font-size: 12px; }
   .latest-date { font-size: 11px; }
 
-  /* Date input: ensure full date visible */
-  .config-input[type="date"] { min-width: 0; font-size: 12px; padding: 6px 4px; }
+  /* Date input: wider to show full date */
+  .config-input[type="date"] { width: 100%; font-size: 12px; padding: 6px 4px; }
+
+  /* ===== Predict page prize table: fit screen ===== */
+  .latest-prize-section { max-width: 100%; margin-top: 12px !important; }
+  .latest-prize-title { font-size: 14px; margin-bottom: 8px; }
+  .latest-prize-table { font-size: 11px; width: 100%; }
+  .latest-prize-table thead th { padding: 6px 4px; font-size: 10px; }
+  .latest-prize-table tbody td { padding: 5px 4px; font-size: 11px; }
+  .latest-prize-table .lp-name { font-size: 11px; }
+  .latest-prize-table .lp-count { font-size: 11px; }
+  .latest-prize-table .lp-amount { font-size: 11px; }
+  .latest-prize-table .lp-name-1 { font-size: 12px; }
+
+  /* History period cell smaller */
+  .period-cell { font-size: 9px; }
 
   /* ===== Freq grid: compact ===== */
   .freq-grid { grid-template-columns: repeat(7, 1fr); gap: 2px; }
