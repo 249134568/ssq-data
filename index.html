@@ -142,6 +142,20 @@ body {
 .nav-refresh.spinning svg { animation: spin 0.8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* Nav sub bar (update button) */
+.nav-sub {
+  display: none;
+  padding: 4px 12px 6px;
+  border-bottom: 0.5px solid var(--border);
+  background: var(--bg-glass);
+}
+.nav-sub .nav-refresh {
+  font-size: 11px;
+  padding: 3px 10px;
+  min-height: 28px;
+  border-radius: 6px;
+}
+
 /* ========== Hero Section ========== */
 .hero {
   text-align: center;
@@ -863,13 +877,28 @@ body {
     --radius-md: 12px;
   }
 
-  /* Nav: compact header */
-  .nav-inner { height: 46px; padding: 0 8px; }
-  .nav-logo { font-size: 14px; gap: 6px; }
-  .nav-logo .logo-icon { width: 26px; height: 26px; font-size: 11px; border-radius: 6px; }
-  .nav-tab { padding: 12px 10px; font-size: 13px; }
-  .nav-refresh { padding: 4px 8px; font-size: 12px; }
-  .nav-refresh svg { width: 14px; height: 14px; }
+  /* Nav: compact header, tabs wrap to 2 lines */
+  .nav-inner {
+    height: auto;
+    flex-wrap: wrap;
+    padding: 6px 8px 2px;
+    gap: 0;
+  }
+  .nav-logo { display: none; }
+  .nav-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+    width: 100%;
+    overflow: visible;
+  }
+  .nav-tab { padding: 8px 10px; font-size: 13px; flex: 0 0 auto; }
+
+  /* Update button in sub bar */
+  .nav-inner .nav-refresh { display: none; }
+  .nav-sub { display: flex; justify-content: flex-end; }
+  .nav-refresh { padding: 3px 10px; font-size: 11px; }
+  .nav-refresh svg { width: 12px; height: 12px; }
 
   /* Main content: tighter padding */
   .main-content { padding: 10px 4px 80px; }
@@ -948,6 +977,13 @@ body {
     padding: 8px 14px;
     font-size: 14px;
   }
+
+  /* ===== Latest date: smaller font ===== */
+  .latest-period { font-size: 12px; }
+  .latest-date { font-size: 11px; }
+
+  /* Date input: ensure full date visible */
+  .config-input[type="date"] { min-width: 0; font-size: 14px; padding: 8px 10px; }
 
   /* ===== Freq grid: compact ===== */
   .freq-grid { grid-template-columns: repeat(7, 1fr); gap: 2px; }
@@ -1316,7 +1352,6 @@ body {
   <div class="nav-inner">
     <a class="nav-logo" href="#">
       <div class="logo-icon">彩</div>
-      <span>双色球推算</span>
     </a>
     <ul class="nav-tabs">
       <li class="nav-tab active" data-page="predict">智能推算</li>
@@ -1325,8 +1360,10 @@ body {
       <li class="nav-tab" data-page="yijing">易经原理</li>
       <li class="nav-tab" data-page="backtest">回测系统</li>
     </ul>
+  </div>
+  <div class="nav-sub">
     <button class="nav-refresh" id="navRefresh" onclick="manualRefresh()" title="检查更新">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.3"/></svg>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.3"/></svg>
       <span>检查更新</span>
     </button>
   </div>
