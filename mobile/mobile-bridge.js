@@ -231,8 +231,40 @@
     }
   }
 
-  // Run init early
+  // ========== Mobile UX Enhancements ==========
+  function setupMobileUX() {
+    // Add mobile meta tags
+    const viewport = document.querySelector('meta[name="viewport"]');
+    if (viewport) {
+      viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover');
+    }
+
+    // Prevent pull-to-refresh
+    document.body.style.overscrollBehavior = 'none';
+
+    // Add mobile class for CSS targeting
+    document.documentElement.classList.add('mobile-app');
+
+    // Smooth scroll to active tab content
+    document.addEventListener('click', function(e) {
+      const tab = e.target.closest('.nav-tab');
+      if (tab) {
+        // Scroll tab into view if partially hidden
+        tab.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      }
+    });
+
+    // Fast click: remove 300ms tap delay
+    document.addEventListener('touchstart', function() {}, { passive: true });
+  }
+
+  // Run both inits
   initMobileData();
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupMobileUX);
+  } else {
+    setupMobileUX();
+  }
 
   console.log('[Mobile Bridge] 已初始化');
 })();
