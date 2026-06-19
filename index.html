@@ -952,10 +952,9 @@ body {
     white-space: nowrap;
   }
   .history-table thead th:nth-child(1) { width: 20px; }  /* arrow */
-  .history-table thead th:nth-child(2) { width: 56px; }  /* period */
-  .history-table thead th:nth-child(3) { width: 58px; }  /* date */
-  /* col 4 balls = auto */
-  .history-table thead th:nth-child(5) { width: 62px; }  /* sales */
+  .history-table thead th:nth-child(2) { width: 62px; }  /* period */
+  /* col 3 balls = auto */
+  .history-table thead th:nth-child(4) { width: 72px; }  /* sales */
   .history-table tbody td {
     padding: 4px 2px;
     font-size: 11px;
@@ -963,9 +962,8 @@ body {
   }
   .history-table tbody td:nth-child(1) { text-align: center; vertical-align: middle; }
   .history-table tbody td:nth-child(2) { padding-left: 4px; }
-  .history-table tbody td:nth-child(5) { font-size: 9px; color: var(--text-tertiary); text-align: right; }
+  .history-table tbody td:nth-child(4) { font-size: 9px; color: var(--text-tertiary); text-align: right; }
   .period-cell { font-size: 10px; font-weight: 600; }
-  .date-cell { font-size: 10px; }
 
   /* Balls: red row + blue row */
   .balls-row { gap: 2px; flex-wrap: nowrap; }
@@ -1047,13 +1045,13 @@ body {
   /* ===== Predict page prize table: fit screen ===== */
   .latest-prize-section { max-width: 100%; margin-top: 12px !important; }
   .latest-prize-title { font-size: 14px; margin-bottom: 8px; }
-  .latest-prize-table { font-size: 11px; width: 100%; }
-  .latest-prize-table thead th { padding: 6px 4px; font-size: 10px; }
-  .latest-prize-table tbody td { padding: 5px 4px; font-size: 11px; }
-  .latest-prize-table .lp-name { font-size: 11px; }
-  .latest-prize-table .lp-count { font-size: 11px; }
-  .latest-prize-table .lp-amount { font-size: 11px; }
-  .latest-prize-table .lp-name-1 { font-size: 12px; }
+  .latest-prize-table { font-size: 11px; width: 100%; border-radius: 6px; }
+  .latest-prize-table thead th { padding: 5px 3px; font-size: 9px; letter-spacing: 0; }
+  .latest-prize-table tbody td { padding: 4px 3px; font-size: 10px; }
+  .latest-prize-table .lp-name { font-size: 10px; }
+  .latest-prize-table .lp-count { font-size: 10px; }
+  .latest-prize-table .lp-amount { font-size: 10px; }
+  .latest-prize-table .lp-name-1 { font-size: 11px; }
 
   /* History period cell smaller */
   .period-cell { font-size: 9px; }
@@ -1977,7 +1975,7 @@ function renderLatestResult() {
     <div class="latest-prize-section">
       <div class="latest-prize-title">中 奖 情 况</div>
       <table class="latest-prize-table">
-        <thead><tr><th>奖级</th><th>中奖注数（注）</th><th>单注中奖金额（元）</th></tr></thead>
+        <thead><tr><th>奖级</th><th>注数</th><th>单注金额</th></tr></thead>
         <tbody>${prizeRows}</tbody>
       </table>
     </div>
@@ -1992,7 +1990,7 @@ function renderHistoryTable() {
   function renderRows(data) {
     return `<table class="history-table">
       <thead><tr>
-        <th style="width:40px"></th><th>期号</th><th>日期</th><th>开奖号码</th><th>销售额</th>
+        <th style="width:40px"></th><th>期号</th><th>开奖号码</th><th>销售额</th>
       </tr></thead>
       <tbody>
         ${data.map((d, idx) => {
@@ -2023,7 +2021,6 @@ function renderHistoryTable() {
           return `<tr class="history-row-main" data-idx="${idx}">
             <td><span class="expand-arrow">▶</span></td>
             <td class="period-cell">${d.period}</td>
-            <td class="date-cell">${d.date}</td>
             <td>
               <div class="balls-row">
                 ${d.red.map(r => `<span class="ball ball-red ball-sm">${r}</span>`).join('')}
@@ -2035,7 +2032,7 @@ function renderHistoryTable() {
             <td style="font-size:12px;color:var(--text-tertiary);font-variant-numeric:tabular-nums">${d.sales || '-'}</td>
           </tr>
           <tr class="history-row-detail" data-idx="${idx}" style="display:none">
-            <td colspan="5">
+            <td colspan="4">
               <div class="detail-panel">
                 <div class="detail-grid">
                   <div class="detail-item">
