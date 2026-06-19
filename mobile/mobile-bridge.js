@@ -245,11 +245,22 @@
     // Add mobile class for CSS targeting
     document.documentElement.classList.add('mobile-app');
 
+    // Fix Worker path for Capacitor (https:// scheme)
+    if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+      const origWorker = window.Worker;
+      window.Worker = function(url, options) {
+        if (typeof url === 'string' && !url.startsWith('http') && !url.startsWith('/') && !url.startsWith('blob:')) {
+          url = new URL(url, window.location.href).href;
+        }
+        return new origWorker(url, options);
+      };
+      window.Worker.prototype = origWorker.prototype;
+    }
+
     // Smooth scroll to active tab content
     document.addEventListener('click', function(e) {
       const tab = e.target.closest('.nav-tab');
       if (tab) {
-        // Scroll tab into view if partially hidden
         tab.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
       }
     });

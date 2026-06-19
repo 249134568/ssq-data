@@ -265,3 +265,56 @@
   .bt-optimize-card { flex-direction: column; }
   #page-backtest { padding: 0 16px 40px; }
 }
+
+/* Mobile (Android / iPhone) */
+@media (max-width: 480px) {
+  #page-backtest { padding: 0 4px 40px; }
+  .bt-card { padding: 14px 10px; margin-bottom: 14px; border-radius: 12px; }
+  .bt-card-title { font-size: 16px; margin-bottom: 12px; }
+  .bt-section-title { font-size: 14px; margin: 14px 0 8px; }
+
+  /* Config: single column on very small screens */
+  .bt-config-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .bt-config-label { font-size: 12px; }
+  .bt-config-select, .bt-config-input { font-size: 14px; padding: 8px 10px; }
+  .bt-config-input[type="number"] { width: 70px; }
+
+  /* Weight grid: 2 columns compact */
+  .bt-weight-grid { grid-template-columns: 1fr 1fr; gap: 8px; padding: 10px; }
+  .bt-weight-item label { font-size: 11px; min-width: 50px; }
+
+  /* Buttons: touch friendly */
+  .bt-btn { padding: 10px 18px; font-size: 14px; min-height: 42px; }
+  .bt-btn-group { gap: 8px; }
+
+  /* Hit table: scrollable */
+  #bt-hit-table-wrap {
+    margin: 0 -10px;
+    padding: 0 10px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .bt-hit-table { font-size: 12px; min-width: 360px; }
+  .bt-hit-table th { padding: 8px 10px; font-size: 11px; }
+  .bt-hit-table td { padding: 8px 10px; font-size: 12px; }
+
+  /* Charts: smaller height */
+  .bt-chart-canvas { height: 180px; }
+  .bt-gen-chart-canvas { height: 150px; }
+
+  /* Optimize card: no min-width, allow wrap */
+  .bt-weight-compare { min-width: 0; }
+  .bt-weight-compare table { font-size: 12px; }
+  .bt-weight-compare th { padding: 8px 10px; font-size: 11px; }
+  .bt-weight-compare td { padding: 6px 10px; font-size: 12px; }
+
+  /* Progress text */
+  .bt-progress-text { font-size: 11px; }
+
+  /* Touch: no select on interactive elements */
+  .bt-btn, .bt-config-select, .bt-config-input {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  .bt-btn:active { opacity: 0.7; }
+}
