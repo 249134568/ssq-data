@@ -951,18 +951,19 @@ body {
     text-align: center;
     white-space: nowrap;
   }
-  .history-table thead th:nth-child(1) { width: 22px; }  /* arrow */
-  .history-table thead th:nth-child(2) { width: 58px; }  /* period */
-  .history-table thead th:nth-child(3) { width: 62px; }  /* date */
+  .history-table thead th:nth-child(1) { width: 20px; }  /* arrow */
+  .history-table thead th:nth-child(2) { width: 56px; }  /* period */
+  .history-table thead th:nth-child(3) { width: 58px; }  /* date */
   /* col 4 balls = auto */
-  .history-table thead th:nth-child(5) { width: 68px; }  /* sales */
+  .history-table thead th:nth-child(5) { width: 62px; }  /* sales */
   .history-table tbody td {
     padding: 4px 2px;
     font-size: 11px;
     vertical-align: top;
   }
   .history-table tbody td:nth-child(1) { text-align: center; vertical-align: middle; }
-  .history-table tbody td:nth-child(5) { font-size: 10px; color: var(--text-tertiary); text-align: right; }
+  .history-table tbody td:nth-child(2) { padding-left: 4px; }
+  .history-table tbody td:nth-child(5) { font-size: 9px; color: var(--text-tertiary); text-align: right; }
   .period-cell { font-size: 10px; font-weight: 600; }
   .date-cell { font-size: 10px; }
 
@@ -1002,7 +1003,7 @@ body {
   .prize-card-count { font-size: 11px; font-weight: 700; color: var(--text-primary); }
   .prize-card-amount { font-size: 10px; color: #c92a34; font-weight: 600; }
   .prize-card-item.first-prize .prize-card-amount { color: #d4af37; }
-  .latest-prize-table { display: none; }
+  .history-row-detail .latest-prize-table { display: none; }
 
   .detail-location { font-size: 11px !important; }
 
