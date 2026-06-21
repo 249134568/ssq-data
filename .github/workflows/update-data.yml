@@ -3,9 +3,9 @@ name: Update Lottery Data
 on:
   schedule:
     # Draw days (Sun/Tue/Thu): every 5 min from 21:25 to 22:55 CST (UTC+8 = 13:25-14:55 UTC)
-    - cron: '25,30,35,40,45,50,55 13 0,2,4 * *'
-    - cron: '0,5,10,15,20,25,30,35,40,45,50,55 14 0,2,4 * *'
-    # Non-draw: every 4 hours (0,4,8,12,16,20 UTC = 8,12,16,20,0,4 CST)
+    - cron: '25,30,35,40,45,50,55 13 * * 0,2,4'
+    - cron: '0,5,10,15,20,25,30,35,40,45,50,55 14 * * 0,2,4'
+    # Non-draw: every 4 hours
     - cron: '0 0,4,8,12,16,20 * * *'
   workflow_dispatch:
 
