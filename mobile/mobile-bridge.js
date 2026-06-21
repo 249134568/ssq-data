@@ -3,7 +3,7 @@
   'use strict';
 
   const DATA_KEY = 'ssq_lottery_data';
-  const BASE_URL = 'https://www.cwl.gov.cn';
+  const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/249134568/ssq-data/master/data.json';
   const STORE_KEY = 'ssq_saved_predictions';
 
   // ========== Data Storage (localStorage) ==========
@@ -22,86 +22,23 @@
   async function nativeFetch(url, retries = 2) {
     for (let i = 0; i < retries; i++) {
       try {
-        // Try Capacitor native HTTP (no CORS, custom headers)
         if (window.Capacitor && window.Capacitor.isNativePlatform()) {
           const { CapacitorHttp } = window.Capacitor.Plugins;
           const resp = await CapacitorHttp.request({
             url: url,
             method: 'GET',
-            headers: {
-              'User-Agent': 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36',
-              'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-              'Accept-Language': 'zh-CN,zh;q=0.9',
-            },
+            headers: { 'Accept': 'application/json' },
             responseType: 'text',
           });
           return resp.data;
         }
-        // Fallback: regular fetch (for browser testing)
-        const resp = await fetch(url, {
-          headers: {
-            'Accept': 'text/html',
-            'Accept-Language': 'zh-CN',
-          }
-        });
+        const resp = await fetch(url);
         return await resp.text();
       } catch (e) {
         if (i === retries - 1) throw e;
         await new Promise(r => setTimeout(r, 3000));
       }
     }
-  }
-
-  // ========== HTML Parsing (same regex logic as server.js) ==========
-  function parseLatestPeriod(html) {
-    const periodMatches = [...html.matchAll(/<td[^>]*>(\d{7})<\/td>/g)];
-    if (periodMatches.length === 0) throw new Error('无法从列表页解析期号');
-
-    const period = periodMatches[0][1];
-    const rowStart = html.lastIndexOf('<tr', periodMatches[0].index);
-    const rowEnd = html.indexOf('</tr>', periodMatches[0].index);
-    const rowHtml = html.substring(rowStart, rowEnd);
-
-    const redBalls = [];
-    let blue = 0;
-    const redBallMatches = [...rowHtml.matchAll(/qiu-item-wqgg-zjhm-red[^>]*>(\d+)<\/div>/g)];
-    const blueBallMatch = rowHtml.match(/qiu-item-wqgg-zjhm-blue[^>]*>(\d+)<\/div>/);
-    for (const m of redBallMatches) { if (redBalls.length < 6) redBalls.push(parseInt(m[1])); }
-    if (blueBallMatch) blue = parseInt(blueBallMatch[1]);
-
-    const cells = [];
-    const tdRegex = /<td[^>]*>([\s\S]*?)<\/td>/g;
-    let tdMatch;
-    while ((tdMatch = tdRegex.exec(rowHtml)) !== null) {
-      cells.push(tdMatch[1].replace(/<[^>]+>/g, '').trim());
-    }
-
-    const detailHref = rowHtml.match(/href="([^"]*\.shtml)"/);
-    return {
-      period, red: redBalls, blue,
-      date: cells[1] || '',
-      sales: cells[7] || '', pool: cells[8] || '',
-      firstPrizeCount: cells[3] || '', firstPrizeAmount: cells[4] || '',
-      secondPrizeCount: cells[5] || '', secondPrizeAmount: cells[6] || '',
-      detailUrl: detailHref ? detailHref[1] : '',
-    };
-  }
-
-  function parseDetail(html) {
-    const result = { prizes: {}, firstPrizeDetail: '', nextPool: '' };
-    const tableRegex = /<tr[^>]*>\s*<td[^>]*>([^<]*(?:等奖|福运)[^<]*)<\/td>\s*<td[^>]*>(\d+)<\/td>\s*<td[^>]*>([\d,]+)<\/td>/g;
-    let match;
-    while ((match = tableRegex.exec(html)) !== null) {
-      result.prizes[match[1].trim()] = { count: match[2], amount: match[3] };
-    }
-    const locMatch = html.match(/一等奖中奖情况[：:]*<\/div>\s*<div[^>]*winningProvinces[^>]*>([\s\S]*?)<\/div>/);
-    if (locMatch) {
-      const text = locMatch[1].trim();
-      if (text.includes('注')) result.firstPrizeDetail = text;
-    }
-    const poolMatch = html.match(/下期一等奖奖池累计金额[：:\s]*([\d,]+)元/);
-    if (poolMatch) result.nextPool = poolMatch[1];
-    return result;
   }
 
   // ========== API Overrides ==========
@@ -154,62 +91,89 @@
     isUpdating = true;
 
     try {
-      const html = await nativeFetch(`${BASE_URL}/ygkj/wqkjgg/ssq/`);
-      const remote = parseLatestPeriod(html);
+      // Fetch latest data from GitHub Raw (auto-updated by GitHub Actions)
+      const remoteData = await fetchGithubData();
+      if (!remoteData || remoteData.length === 0) {
+        return { updated: false, reason: 'fetch_failed' };
+      }
 
-      if (!remote.period) return { updated: false, reason: 'fetch_failed' };
+      const remoteLatest = remoteData[0];
+      if (!remoteLatest.period || !remoteLatest.red || remoteLatest.red.length !== 6) {
+        return { updated: false, reason: 'invalid_data' };
+      }
 
-      const data = loadDataArray();
-      const latestLocal = data.length > 0 ? data[0].period : null;
+      const localData = loadDataArray();
+      const latestLocal = localData.length > 0 ? localData[0].period : null;
 
       const isIncomplete = (entry) => !entry.sales || entry.sales === '_'
         || !entry.pool || entry.pool === '_'
         || !entry.firstPrizeCount || entry.firstPrizeCount === '_'
         || !entry.firstPrizeDetail;
 
-      if (remote.period === latestLocal && !isIncomplete(data[0])) {
+      if (remoteLatest.period === latestLocal && !isIncomplete(localData[0])) {
         return { updated: false, reason: 'up_to_date', period: latestLocal };
       }
 
-      // Fetch detail
-      let detail = { prizes: {}, firstPrizeDetail: '', nextPool: '' };
-      if (remote.detailUrl) {
-        try {
-          const detailUrl = remote.detailUrl.startsWith('http') ? remote.detailUrl : `${BASE_URL}${remote.detailUrl}`;
-          const detailHtml = await nativeFetch(detailUrl);
-          detail = parseDetail(detailHtml);
-        } catch (e) { /* ignore detail errors */ }
+      // Merge remote data into local: update existing or add new entries
+      let changed = false;
+      for (const remoteEntry of remoteData) {
+        if (!remoteEntry.period || !remoteEntry.red || remoteEntry.red.length !== 6) continue;
+        const existIdx = localData.findIndex(d => d.period === remoteEntry.period);
+        if (existIdx >= 0) {
+          // Update if remote has more complete data
+          if (isIncomplete(localData[existIdx]) && !isIncomplete(remoteEntry)) {
+            localData[existIdx] = remoteEntry;
+            changed = true;
+          }
+        } else {
+          localData.push(remoteEntry);
+          changed = true;
+        }
       }
 
-      const newEntry = {
-        period: remote.period, date: remote.date, red: remote.red, blue: remote.blue,
-        sales: remote.sales, pool: remote.pool,
-        firstPrizeCount: remote.firstPrizeCount, firstPrizeAmount: remote.firstPrizeAmount,
-        secondPrizeCount: remote.secondPrizeCount, secondPrizeAmount: remote.secondPrizeAmount,
-        prizes: detail.prizes, firstPrizeDetail: detail.firstPrizeDetail, nextPool: detail.nextPool,
-      };
+      // Sort by period descending
+      localData.sort((a, b) => b.period.localeCompare(a.period));
 
-      if (!newEntry.red || newEntry.red.length !== 6 || !newEntry.blue) {
-        return { updated: false, reason: 'invalid_data' };
+      if (!changed && remoteLatest.period === latestLocal) {
+        return { updated: false, reason: 'up_to_date', period: latestLocal };
       }
 
-      const existIdx = data.findIndex(d => d.period === remote.period);
-      if (existIdx >= 0) { data[existIdx] = newEntry; }
-      else { data.unshift(newEntry); }
+      saveDataArray(localData);
 
-      saveDataArray(data);
       // Refresh page data
       if (window.LOTTERY_DATA) {
         window.LOTTERY_DATA.length = 0;
-        data.forEach(d => window.LOTTERY_DATA.push(d));
+        localData.forEach(d => window.LOTTERY_DATA.push(d));
         if (typeof window.initApp === 'function') window.initApp();
       }
 
-      return { updated: true, period: remote.period, total: data.length };
+      return { updated: true, period: remoteLatest.period, total: localData.length };
     } catch (e) {
       return { updated: false, reason: 'error', error: e.message };
     } finally {
       isUpdating = false;
+    }
+  }
+
+  // Fetch data from GitHub Raw (no anti-bot, plain JSON)
+  async function fetchGithubData() {
+    try {
+      if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+        const { CapacitorHttp } = window.Capacitor.Plugins;
+        const resp = await CapacitorHttp.request({
+          url: GITHUB_RAW_URL,
+          method: 'GET',
+          headers: { 'Accept': 'application/json' },
+          responseType: 'text',
+        });
+        return JSON.parse(resp.data);
+      }
+      // Browser fallback
+      const resp = await originalFetch(GITHUB_RAW_URL);
+      return await resp.json();
+    } catch (e) {
+      console.error('[Mobile Bridge] GitHub Raw 获取失败:', e.message);
+      return null;
     }
   }
 
