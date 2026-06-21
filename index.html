@@ -1939,7 +1939,7 @@ function initApp() {
   renderYiJingEnv();
   setupEvents();
   setDefaultDate();
-  startPolling();
+  if (!pollTimer) startPolling();
   renderSavedPredictions();
   if (typeof initBacktestTab === 'function') initBacktestTab();
 }
@@ -2730,12 +2730,21 @@ async function manualRefresh() {
   const btn = document.getElementById('navRefresh');
   btn.classList.add('spinning');
   try {
-    // First try server-side update check
+    // Trigger update
+    let updateResult = null;
     try {
-      await fetch('/api/update', { method: 'POST' });
+      const res = await fetch('/api/update', { method: 'POST' });
+      if (res.ok) updateResult = await res.json();
     } catch (e) { /* ignore if no server */ }
 
-    // Then check status
+    if (updateResult && updateResult.updated) {
+      // Data was updated - refresh UI
+      currentLatestPeriod = LOTTERY_DATA.length > 0 ? LOTTERY_DATA[0].period : null;
+      showToast(`第 ${updateResult.period} 期数据已更新`);
+      return;
+    }
+
+    // Check status as fallback
     try {
       const res = await fetch('/api/status');
       if (res.ok) {
