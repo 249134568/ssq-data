@@ -2744,6 +2744,16 @@ async function manualRefresh() {
       return;
     }
 
+    if (updateResult && updateResult.reason === 'fetch_failed') {
+      showToast('更新失败：无法连接服务器，请检查网络');
+      return;
+    }
+
+    if (updateResult && updateResult.reason === 'error') {
+      showToast('更新失败：' + (updateResult.error || '未知错误'));
+      return;
+    }
+
     // Check status as fallback
     try {
       const res = await fetch('/api/status');

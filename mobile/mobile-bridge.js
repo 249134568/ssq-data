@@ -20,11 +20,42 @@
     localStorage.setItem(DATA_KEY, JSON.stringify(data));
   }
 
+  // ========== CapacitorHttp Helper ==========
+  // CapacitorHttp.request() with responseType:'text' may return resp.data
+  // as either a string or an already-parsed object (depending on version/Content-Type).
+  // This helper normalizes the response to always return the expected type.
+  async function capacitorHttpGet(url, expectType) {
+    if (!window.Capacitor || !window.Capacitor.isNativePlatform()) return null;
+
+    const { CapacitorHttp } = window.Capacitor.Plugins;
+    const resp = await CapacitorHttp.request({
+      url: url,
+      method: 'GET',
+      headers: { 'Accept': expectType === 'json' ? 'application/json' : 'text/html,application/xml,*/*' },
+      responseType: 'text',
+    });
+
+    const data = resp.data;
+
+    if (expectType === 'json') {
+      // If already parsed as object, return directly
+      if (data && typeof data === 'object') return data;
+      // If string, parse it
+      if (typeof data === 'string') return JSON.parse(data);
+      return null;
+    }
+
+    // expectType === 'text'
+    if (typeof data === 'string') return data;
+    // If somehow parsed as object, convert back to string
+    if (data && typeof data === 'object') return JSON.stringify(data);
+    return String(data || '');
+  }
+
   // ========== API Overrides ==========
-  // Override fetch to intercept API calls
   const originalFetch = window.fetch;
   window.fetch = async function(url, options) {
-    const urlStr = typeof url === 'string' ? url : url.url;
+    const urlStr = typeof url === 'string' ? url : (url && url.url ? url.url : String(url));
 
     // /api/data - return all lottery data from localStorage
     if (urlStr === '/api/data' || urlStr.endsWith('/api/data')) {
@@ -71,29 +102,44 @@
 
     try {
       // Try GitHub Raw first (auto-updated by GitHub Actions), fallback to 500.com API
-      let remoteData = await fetchGithubData();
+      let remoteData = null;
+      let source = '';
 
-      if (!remoteData || remoteData.length === 0) {
-        console.log('[Mobile Bridge] GitHub Raw 无数据，尝试 500.com API...');
-        remoteData = await fetch500Data();
+      try {
+        remoteData = await fetchGithubData();
+        if (remoteData && remoteData.length > 0) source = 'github';
+      } catch (e) {
+        console.warn('[Mobile Bridge] GitHub Raw 获取失败:', e.message);
       }
 
       if (!remoteData || remoteData.length === 0) {
-        return { updated: false, reason: 'fetch_failed' };
+        console.log('[Mobile Bridge] 尝试 500.com API...');
+        try {
+          remoteData = await fetch500Data();
+          if (remoteData && remoteData.length > 0) source = '500com';
+        } catch (e) {
+          console.warn('[Mobile Bridge] 500.com API 获取失败:', e.message);
+        }
+      }
+
+      if (!remoteData || remoteData.length === 0) {
+        console.error('[Mobile Bridge] 所有数据源均失败');
+        return { updated: false, reason: 'fetch_failed', error: '无法连接服务器，请检查网络' };
       }
 
       const remoteLatest = remoteData[0];
       if (!remoteLatest.period || !remoteLatest.red || remoteLatest.red.length !== 6) {
-        return { updated: false, reason: 'invalid_data' };
+        return { updated: false, reason: 'invalid_data', error: '数据格式异常' };
       }
+
+      console.log(`[Mobile Bridge] 数据源: ${source}, 远程最新: ${remoteLatest.period}`);
 
       const localData = loadDataArray();
       const latestLocal = localData.length > 0 ? localData[0].period : null;
 
       const isIncomplete = (entry) => !entry.sales || entry.sales === '_'
         || !entry.pool || entry.pool === '_'
-        || !entry.firstPrizeCount || entry.firstPrizeCount === '_'
-        || !entry.firstPrizeDetail;
+        || !entry.firstPrizeCount || entry.firstPrizeCount === '_';
 
       if (remoteLatest.period === latestLocal && !isIncomplete(localData[0])) {
         return { updated: false, reason: 'up_to_date', period: latestLocal };
@@ -115,6 +161,13 @@
           if (!existing.secondPrizeCount && remoteEntry.secondPrizeCount) { existing.secondPrizeCount = remoteEntry.secondPrizeCount; merged = true; }
           if (!existing.secondPrizeAmount && remoteEntry.secondPrizeAmount) { existing.secondPrizeAmount = remoteEntry.secondPrizeAmount; merged = true; }
           if (!existing.nextPool && remoteEntry.nextPool) { existing.nextPool = remoteEntry.nextPool; merged = true; }
+          // Always overwrite balls/date if remote has valid data (in case of corrections)
+          if (remoteEntry.red && remoteEntry.red.length === 6 && remoteEntry.blue) {
+            existing.red = remoteEntry.red;
+            existing.blue = remoteEntry.blue;
+            if (remoteEntry.date) existing.date = remoteEntry.date;
+            merged = true;
+          }
           if (merged) changed = true;
         } else {
           localData.push(remoteEntry);
@@ -140,6 +193,7 @@
 
       return { updated: true, period: remoteLatest.period, total: localData.length };
     } catch (e) {
+      console.error('[Mobile Bridge] doUpdate 异常:', e);
       return { updated: false, reason: 'error', error: e.message };
     } finally {
       isUpdating = false;
@@ -148,125 +202,104 @@
 
   // Fetch data from GitHub Raw (no anti-bot, plain JSON)
   async function fetchGithubData() {
-    try {
-      if (window.Capacitor && window.Capacitor.isNativePlatform()) {
-        const { CapacitorHttp } = window.Capacitor.Plugins;
-        const resp = await CapacitorHttp.request({
-          url: GITHUB_RAW_URL,
-          method: 'GET',
-          headers: { 'Accept': 'application/json' },
-          responseType: 'text',
-        });
-        return JSON.parse(resp.data);
-      }
-      const resp = await originalFetch(GITHUB_RAW_URL);
-      return await resp.json();
-    } catch (e) {
-      console.error('[Mobile Bridge] GitHub Raw 获取失败:', e.message);
+    if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+      const data = await capacitorHttpGet(GITHUB_RAW_URL, 'json');
+      if (Array.isArray(data)) return data;
       return null;
     }
+    // Browser fallback
+    const resp = await originalFetch(GITHUB_RAW_URL);
+    return await resp.json();
   }
 
   // Fetch data from 500.com API (no anti-bot, XML + HTML)
   async function fetch500Data() {
-    try {
-      // Step 1: Get XML for basic draw results
-      const xml = await nativeFetchText(API_500_XML);
-      if (!xml || !xml.includes('<row')) return null;
+    // Step 1: Get XML for basic draw results
+    const xml = await nativeFetchText(API_500_XML);
+    if (!xml || !xml.includes('<row')) return null;
 
-      const xmlRows = [];
-      const rowRegex = /<row\s+expect="(\d+)"\s+opencode="([^"]+)"\s+opentime="([^"]+)"/g;
-      let match;
-      while ((match = rowRegex.exec(xml)) !== null) {
-        const period = match[1];
-        const opencode = match[2];
-        const opentime = match[3];
-        const parts = opencode.split('|');
-        const red = parts[0].split(',').map(n => parseInt(n.trim(), 10));
-        const blue = parseInt((parts[1] || '').trim(), 10);
-        if (red.length === 6 && blue > 0) {
-          const fullPeriod = period.length === 5 ? '20' + period : period;
-          const dateStr = opentime.split(' ')[0];
-          const dateObj = new Date(dateStr);
-          const dayOfWeek = ['日', '一', '二', '三', '四', '五', '六'][dateObj.getDay()];
-          xmlRows.push({ period: fullPeriod, red, blue, date: `${dateStr}(${dayOfWeek})` });
-        }
+    const xmlRows = [];
+    const rowRegex = /<row\s+expect="(\d+)"\s+opencode="([^"]+)"\s+opentime="([^"]+)"/g;
+    let match;
+    while ((match = rowRegex.exec(xml)) !== null) {
+      const period = match[1];
+      const opencode = match[2];
+      const opentime = match[3];
+      const parts = opencode.split('|');
+      const red = parts[0].split(',').map(n => parseInt(n.trim(), 10));
+      const blue = parseInt((parts[1] || '').trim(), 10);
+      if (red.length === 6 && blue > 0) {
+        const fullPeriod = period.length === 5 ? '20' + period : period;
+        const dateStr = opentime.split(' ')[0];
+        const dateObj = new Date(dateStr);
+        const dayOfWeek = ['日', '一', '二', '三', '四', '五', '六'][dateObj.getDay()];
+        xmlRows.push({ period: fullPeriod, red, blue, date: `${dateStr}(${dayOfWeek})` });
       }
-
-      if (xmlRows.length === 0) return null;
-
-      // Step 2: Get datachart for detailed data (last 5 periods)
-      const latestShort = xmlRows[0].period.slice(-5);
-      const startPeriod = String(Number(latestShort) - 4);
-      const chartHtml = await nativeFetchText(`${API_500_CHART}?start=${startPeriod}&end=${latestShort}`);
-
-      const chartMap = {};
-      if (chartHtml) {
-        const trRegex = /<tr\s+class="t_tr1"[^>]*>([\s\S]*?)<\/tr>/g;
-        let trMatch;
-        while ((trMatch = trRegex.exec(chartHtml)) !== null) {
-          // Strip HTML comments before parsing <td>
-          const trContent = trMatch[1].replace(/<!--[\s\S]*?-->/g, '');
-          const tdRegex = /<td[^>]*>([\s\S]*?)<\/td>/g;
-          const cells = [];
-          let tdMatch;
-          while ((tdMatch = tdRegex.exec(trContent)) !== null) {
-            cells.push(tdMatch[1].replace(/<[^>]+>/g, '').trim());
-          }
-          if (cells.length >= 16) {
-            const period = cells[0];
-            const fullPeriod = period.length === 5 ? '20' + period : period;
-            const red = cells.slice(1, 7).map(n => parseInt(n.trim(), 10));
-            const blue = parseInt(cells[7].trim(), 10);
-            if (red.length === 6 && red.every(n => n > 0) && blue > 0) {
-              chartMap[fullPeriod] = {
-                sales: cells[14], pool: cells[9],
-                firstPrizeCount: cells[10], firstPrizeAmount: cells[11],
-                secondPrizeCount: cells[12], secondPrizeAmount: cells[13],
-              };
-            }
-          }
-        }
-      }
-
-      // Merge XML + datachart data
-      const results = [];
-      for (const xmlRow of xmlRows) {
-        const detail = chartMap[xmlRow.period] || {};
-        results.push({
-          period: xmlRow.period, date: xmlRow.date, red: xmlRow.red, blue: xmlRow.blue,
-          sales: detail.sales || '', pool: detail.pool || '',
-          firstPrizeCount: detail.firstPrizeCount || '', firstPrizeAmount: detail.firstPrizeAmount || '',
-          secondPrizeCount: detail.secondPrizeCount || '', secondPrizeAmount: detail.secondPrizeAmount || '',
-          prizes: {}, firstPrizeDetail: '', nextPool: detail.pool || '',
-        });
-        // Only process recent 10 entries
-        if (results.length >= 10) break;
-      }
-
-      return results.length > 0 ? results : null;
-    } catch (e) {
-      console.error('[Mobile Bridge] 500.com API 获取失败:', e.message);
-      return null;
     }
+
+    if (xmlRows.length === 0) return null;
+
+    // Step 2: Get datachart for detailed data (last 5 periods)
+    const latestShort = xmlRows[0].period.slice(-5);
+    const startPeriod = String(Number(latestShort) - 4);
+    const chartHtml = await nativeFetchText(`${API_500_CHART}?start=${startPeriod}&end=${latestShort}`);
+
+    const chartMap = {};
+    if (chartHtml) {
+      const trRegex = /<tr\s+class="t_tr1"[^>]*>([\s\S]*?)<\/tr>/g;
+      let trMatch;
+      while ((trMatch = trRegex.exec(chartHtml)) !== null) {
+        // Strip HTML comments before parsing <td>
+        const trContent = trMatch[1].replace(/<!--[\s\S]*?-->/g, '');
+        const tdRegex = /<td[^>]*>([\s\S]*?)<\/td>/g;
+        const cells = [];
+        let tdMatch;
+        while ((tdMatch = tdRegex.exec(trContent)) !== null) {
+          cells.push(tdMatch[1].replace(/<[^>]+>/g, '').trim());
+        }
+        if (cells.length >= 16) {
+          const period = cells[0];
+          const fullPeriod = period.length === 5 ? '20' + period : period;
+          const red = cells.slice(1, 7).map(n => parseInt(n.trim(), 10));
+          const blue = parseInt(cells[7].trim(), 10);
+          if (red.length === 6 && red.every(n => n > 0) && blue > 0) {
+            chartMap[fullPeriod] = {
+              sales: cells[14], pool: cells[9],
+              firstPrizeCount: cells[10], firstPrizeAmount: cells[11],
+              secondPrizeCount: cells[12], secondPrizeAmount: cells[13],
+            };
+          }
+        }
+      }
+    }
+
+    // Merge XML + datachart data
+    const results = [];
+    for (const xmlRow of xmlRows) {
+      const detail = chartMap[xmlRow.period] || {};
+      results.push({
+        period: xmlRow.period, date: xmlRow.date, red: xmlRow.red, blue: xmlRow.blue,
+        sales: detail.sales || '', pool: detail.pool || '',
+        firstPrizeCount: detail.firstPrizeCount || '', firstPrizeAmount: detail.firstPrizeAmount || '',
+        secondPrizeCount: detail.secondPrizeCount || '', secondPrizeAmount: detail.secondPrizeAmount || '',
+        prizes: {}, firstPrizeDetail: '', nextPool: detail.pool || '',
+      });
+      // Only process recent 10 entries
+      if (results.length >= 10) break;
+    }
+
+    return results.length > 0 ? results : null;
   }
 
   // Native fetch that returns text (for XML/HTML APIs)
   async function nativeFetchText(url) {
+    if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+      return await capacitorHttpGet(url, 'text');
+    }
     try {
-      if (window.Capacitor && window.Capacitor.isNativePlatform()) {
-        const { CapacitorHttp } = window.Capacitor.Plugins;
-        const resp = await CapacitorHttp.request({
-          url: url,
-          method: 'GET',
-          headers: { 'Accept': 'text/html,application/xml,*/*' },
-          responseType: 'text',
-        });
-        return resp.data;
-      }
       const resp = await originalFetch(url);
       return await resp.text();
-    } catch (e) {
+    } catch {
       return null;
     }
   }
