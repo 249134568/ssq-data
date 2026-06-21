@@ -4,6 +4,8 @@
 
   const DATA_KEY = 'ssq_lottery_data';
   const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/249134568/ssq-data/master/data.json';
+  const API_500_XML = 'https://kaijiang.500.com/static/info/kaijiang/xml/ssq/list.xml';
+  const API_500_CHART = 'https://datachart.500.com/ssq/history/newinc/history.php';
   const STORE_KEY = 'ssq_saved_predictions';
 
   // ========== Data Storage (localStorage) ==========
@@ -16,29 +18,6 @@
 
   function saveDataArray(data) {
     localStorage.setItem(DATA_KEY, JSON.stringify(data));
-  }
-
-  // ========== Network Fetch (Capacitor HTTP or fallback) ==========
-  async function nativeFetch(url, retries = 2) {
-    for (let i = 0; i < retries; i++) {
-      try {
-        if (window.Capacitor && window.Capacitor.isNativePlatform()) {
-          const { CapacitorHttp } = window.Capacitor.Plugins;
-          const resp = await CapacitorHttp.request({
-            url: url,
-            method: 'GET',
-            headers: { 'Accept': 'application/json' },
-            responseType: 'text',
-          });
-          return resp.data;
-        }
-        const resp = await fetch(url);
-        return await resp.text();
-      } catch (e) {
-        if (i === retries - 1) throw e;
-        await new Promise(r => setTimeout(r, 3000));
-      }
-    }
   }
 
   // ========== API Overrides ==========
@@ -91,8 +70,14 @@
     isUpdating = true;
 
     try {
-      // Fetch latest data from GitHub Raw (auto-updated by GitHub Actions)
-      const remoteData = await fetchGithubData();
+      // Try GitHub Raw first (auto-updated by GitHub Actions), fallback to 500.com API
+      let remoteData = await fetchGithubData();
+
+      if (!remoteData || remoteData.length === 0) {
+        console.log('[Mobile Bridge] GitHub Raw 无数据，尝试 500.com API...');
+        remoteData = await fetch500Data();
+      }
+
       if (!remoteData || remoteData.length === 0) {
         return { updated: false, reason: 'fetch_failed' };
       }
@@ -120,11 +105,17 @@
         if (!remoteEntry.period || !remoteEntry.red || remoteEntry.red.length !== 6) continue;
         const existIdx = localData.findIndex(d => d.period === remoteEntry.period);
         if (existIdx >= 0) {
-          // Update if remote has more complete data
-          if (isIncomplete(localData[existIdx]) && !isIncomplete(remoteEntry)) {
-            localData[existIdx] = remoteEntry;
-            changed = true;
-          }
+          // Merge: fill in missing fields from remote
+          const existing = localData[existIdx];
+          let merged = false;
+          if (!existing.sales && remoteEntry.sales) { existing.sales = remoteEntry.sales; merged = true; }
+          if (!existing.pool && remoteEntry.pool) { existing.pool = remoteEntry.pool; merged = true; }
+          if (!existing.firstPrizeCount && remoteEntry.firstPrizeCount) { existing.firstPrizeCount = remoteEntry.firstPrizeCount; merged = true; }
+          if (!existing.firstPrizeAmount && remoteEntry.firstPrizeAmount) { existing.firstPrizeAmount = remoteEntry.firstPrizeAmount; merged = true; }
+          if (!existing.secondPrizeCount && remoteEntry.secondPrizeCount) { existing.secondPrizeCount = remoteEntry.secondPrizeCount; merged = true; }
+          if (!existing.secondPrizeAmount && remoteEntry.secondPrizeAmount) { existing.secondPrizeAmount = remoteEntry.secondPrizeAmount; merged = true; }
+          if (!existing.nextPool && remoteEntry.nextPool) { existing.nextPool = remoteEntry.nextPool; merged = true; }
+          if (merged) changed = true;
         } else {
           localData.push(remoteEntry);
           changed = true;
@@ -168,11 +159,113 @@
         });
         return JSON.parse(resp.data);
       }
-      // Browser fallback
       const resp = await originalFetch(GITHUB_RAW_URL);
       return await resp.json();
     } catch (e) {
       console.error('[Mobile Bridge] GitHub Raw 获取失败:', e.message);
+      return null;
+    }
+  }
+
+  // Fetch data from 500.com API (no anti-bot, XML + HTML)
+  async function fetch500Data() {
+    try {
+      // Step 1: Get XML for basic draw results
+      const xml = await nativeFetchText(API_500_XML);
+      if (!xml || !xml.includes('<row')) return null;
+
+      const xmlRows = [];
+      const rowRegex = /<row\s+expect="(\d+)"\s+opencode="([^"]+)"\s+opentime="([^"]+)"/g;
+      let match;
+      while ((match = rowRegex.exec(xml)) !== null) {
+        const period = match[1];
+        const opencode = match[2];
+        const opentime = match[3];
+        const parts = opencode.split('|');
+        const red = parts[0].split(',').map(n => parseInt(n.trim(), 10));
+        const blue = parseInt((parts[1] || '').trim(), 10);
+        if (red.length === 6 && blue > 0) {
+          const fullPeriod = period.length === 5 ? '20' + period : period;
+          const dateStr = opentime.split(' ')[0];
+          const dateObj = new Date(dateStr);
+          const dayOfWeek = ['日', '一', '二', '三', '四', '五', '六'][dateObj.getDay()];
+          xmlRows.push({ period: fullPeriod, red, blue, date: `${dateStr}(${dayOfWeek})` });
+        }
+      }
+
+      if (xmlRows.length === 0) return null;
+
+      // Step 2: Get datachart for detailed data (last 5 periods)
+      const latestShort = xmlRows[0].period.slice(-5);
+      const startPeriod = String(Number(latestShort) - 4);
+      const chartHtml = await nativeFetchText(`${API_500_CHART}?start=${startPeriod}&end=${latestShort}`);
+
+      const chartMap = {};
+      if (chartHtml) {
+        const trRegex = /<tr\s+class="t_tr1"[^>]*>([\s\S]*?)<\/tr>/g;
+        let trMatch;
+        while ((trMatch = trRegex.exec(chartHtml)) !== null) {
+          const tdRegex = /<td[^>]*>([\s\S]*?)<\/td>/g;
+          const cells = [];
+          let tdMatch;
+          while ((tdMatch = tdRegex.exec(trMatch[1])) !== null) {
+            cells.push(tdMatch[1].replace(/<[^>]+>/g, '').trim());
+          }
+          const cleanCells = cells.filter(c => !c.startsWith('<!--'));
+          if (cleanCells.length >= 16) {
+            const period = cleanCells[0];
+            const fullPeriod = period.length === 5 ? '20' + period : period;
+            const red = cleanCells.slice(1, 7).map(n => parseInt(n.trim(), 10));
+            const blue = parseInt(cleanCells[7].trim(), 10);
+            if (red.length === 6 && red.every(n => n > 0) && blue > 0) {
+              chartMap[fullPeriod] = {
+                sales: cleanCells[14], pool: cleanCells[9],
+                firstPrizeCount: cleanCells[10], firstPrizeAmount: cleanCells[11],
+                secondPrizeCount: cleanCells[12], secondPrizeAmount: cleanCells[13],
+              };
+            }
+          }
+        }
+      }
+
+      // Merge XML + datachart data
+      const results = [];
+      for (const xmlRow of xmlRows) {
+        const detail = chartMap[xmlRow.period] || {};
+        results.push({
+          period: xmlRow.period, date: xmlRow.date, red: xmlRow.red, blue: xmlRow.blue,
+          sales: detail.sales || '', pool: detail.pool || '',
+          firstPrizeCount: detail.firstPrizeCount || '', firstPrizeAmount: detail.firstPrizeAmount || '',
+          secondPrizeCount: detail.secondPrizeCount || '', secondPrizeAmount: detail.secondPrizeAmount || '',
+          prizes: {}, firstPrizeDetail: '', nextPool: detail.pool || '',
+        });
+        // Only process recent 10 entries
+        if (results.length >= 10) break;
+      }
+
+      return results.length > 0 ? results : null;
+    } catch (e) {
+      console.error('[Mobile Bridge] 500.com API 获取失败:', e.message);
+      return null;
+    }
+  }
+
+  // Native fetch that returns text (for XML/HTML APIs)
+  async function nativeFetchText(url) {
+    try {
+      if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+        const { CapacitorHttp } = window.Capacitor.Plugins;
+        const resp = await CapacitorHttp.request({
+          url: url,
+          method: 'GET',
+          headers: { 'Accept': 'text/html,application/xml,*/*' },
+          responseType: 'text',
+        });
+        return resp.data;
+      }
+      const resp = await originalFetch(url);
+      return await resp.text();
+    } catch (e) {
       return null;
     }
   }

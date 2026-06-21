@@ -12,7 +12,7 @@ on:
 jobs:
   update:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 5
 
     steps:
       - uses: actions/checkout@v4
@@ -22,29 +22,10 @@ jobs:
         with:
           node-version: 22
 
-      - name: Install dependencies
-        run: npm ci --omit=dev
-
-      - name: Install Playwright browsers
-        run: npx playwright install chromium
-
-      - name: Install xvfb
-        run: sudo apt-get update && sudo apt-get install -y xvfb
-
       - name: Fetch latest data
-        run: xvfb-run node scripts/fetch-data.js
+        run: node scripts/fetch-data.js
         env:
           SSQ_DATA_FILE: data.json
-          SSQ_DEBUG_DIR: /tmp/ssq-debug
-          DISPLAY: ':99'
-
-      - name: Upload debug artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: debug-pages
-          path: /tmp/ssq-debug/
-          retention-days: 3
 
       - name: Check for changes
         id: check
