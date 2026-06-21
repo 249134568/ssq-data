@@ -205,23 +205,24 @@
         const trRegex = /<tr\s+class="t_tr1"[^>]*>([\s\S]*?)<\/tr>/g;
         let trMatch;
         while ((trMatch = trRegex.exec(chartHtml)) !== null) {
+          // Strip HTML comments before parsing <td>
+          const trContent = trMatch[1].replace(/<!--[\s\S]*?-->/g, '');
           const tdRegex = /<td[^>]*>([\s\S]*?)<\/td>/g;
           const cells = [];
           let tdMatch;
-          while ((tdMatch = tdRegex.exec(trMatch[1])) !== null) {
+          while ((tdMatch = tdRegex.exec(trContent)) !== null) {
             cells.push(tdMatch[1].replace(/<[^>]+>/g, '').trim());
           }
-          const cleanCells = cells.filter(c => !c.startsWith('<!--'));
-          if (cleanCells.length >= 16) {
-            const period = cleanCells[0];
+          if (cells.length >= 16) {
+            const period = cells[0];
             const fullPeriod = period.length === 5 ? '20' + period : period;
-            const red = cleanCells.slice(1, 7).map(n => parseInt(n.trim(), 10));
-            const blue = parseInt(cleanCells[7].trim(), 10);
+            const red = cells.slice(1, 7).map(n => parseInt(n.trim(), 10));
+            const blue = parseInt(cells[7].trim(), 10);
             if (red.length === 6 && red.every(n => n > 0) && blue > 0) {
               chartMap[fullPeriod] = {
-                sales: cleanCells[14], pool: cleanCells[9],
-                firstPrizeCount: cleanCells[10], firstPrizeAmount: cleanCells[11],
-                secondPrizeCount: cleanCells[12], secondPrizeAmount: cleanCells[13],
+                sales: cells[14], pool: cells[9],
+                firstPrizeCount: cells[10], firstPrizeAmount: cells[11],
+                secondPrizeCount: cells[12], secondPrizeAmount: cells[13],
               };
             }
           }

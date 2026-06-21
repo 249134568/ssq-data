@@ -70,7 +70,8 @@ function parseDatachart(html) {
   const trRegex = /<tr\s+class="t_tr1"[^>]*>([\s\S]*?)<\/tr>/g;
   let trMatch;
   while ((trMatch = trRegex.exec(html)) !== null) {
-    const trHtml = trMatch[1];
+    // Strip HTML comments before parsing <td> (e.g., <!--<td>2</td>-->)
+    const trHtml = trMatch[1].replace(/<!--[\s\S]*?-->/g, '');
     // Extract all <td> contents
     const tdRegex = /<td[^>]*>([\s\S]*?)<\/td>/g;
     const cells = [];
@@ -79,21 +80,18 @@ function parseDatachart(html) {
       cells.push(tdMatch[1].replace(/<[^>]+>/g, '').trim());
     }
 
-    // Skip comment cells (<!--...-->)
-    const cleanCells = cells.filter(c => !c.startsWith('<!--'));
-
-    if (cleanCells.length >= 16) {
-      const period = cleanCells[0];
-      const red = cleanCells.slice(1, 7).map(n => parseInt(n.trim(), 10));
-      const blue = parseInt(cleanCells[7].trim(), 10);
-      // cleanCells[8] is &nbsp; (empty)
-      const pool = cleanCells[9];
-      const firstPrizeCount = cleanCells[10];
-      const firstPrizeAmount = cleanCells[11];
-      const secondPrizeCount = cleanCells[12];
-      const secondPrizeAmount = cleanCells[13];
-      const sales = cleanCells[14];
-      const date = cleanCells[15];
+    if (cells.length >= 16) {
+      const period = cells[0];
+      const red = cells.slice(1, 7).map(n => parseInt(n.trim(), 10));
+      const blue = parseInt(cells[7].trim(), 10);
+      // cells[8] is &nbsp; (empty)
+      const pool = cells[9];
+      const firstPrizeCount = cells[10];
+      const firstPrizeAmount = cells[11];
+      const secondPrizeCount = cells[12];
+      const secondPrizeAmount = cells[13];
+      const sales = cells[14];
+      const date = cells[15];
 
       const fullPeriod = period.length === 5 ? '20' + period : period;
 
