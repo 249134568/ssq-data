@@ -1,10 +1,11 @@
-// Fetch latest lottery data using Playwright (for GitHub Actions)
+// Fetch latest lottery data using Playwright with stealth (for GitHub Actions)
 const { chromium } = require('playwright');
 const fs = require('fs');
 const path = require('path');
 
 const DATA_FILE = process.env.SSQ_DATA_FILE || path.join(__dirname, '..', 'data.json');
 const BASE_URL = 'https://www.cwl.gov.cn';
+const DEBUG_DIR = process.env.SSQ_DEBUG_DIR || '';
 
 function loadData() {
   try { return JSON.parse(fs.readFileSync(DATA_FILE, 'utf-8')); }
@@ -15,25 +16,108 @@ function saveData(data) {
   fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf-8');
 }
 
-async function fetchPage(url) {
-  const browser = await chromium.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-blink-features=AutomationControlled'],
-  });
-  const context = await browser.newContext({
-    userAgent: 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
-    locale: 'zh-CN',
-  });
+function debugSave(name, content) {
+  if (!DEBUG_DIR) return;
   try {
-    const page = await context.newPage();
-    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
-    await page.waitForSelector('td', { timeout: 15000 }).catch(() => {});
-    await page.waitForTimeout(3000);
-    return await page.content();
-  } finally {
-    await context.close();
-    await browser.close();
+    fs.mkdirSync(DEBUG_DIR, { recursive: true });
+    fs.writeFileSync(path.join(DEBUG_DIR, name), content);
+  } catch {}
+}
+
+async function fetchPage(url, retryCount = 2) {
+  for (let attempt = 0; attempt < retryCount; attempt++) {
+    let browser, context;
+    try {
+      browser = await chromium.launch({
+        headless: true,
+        args: [
+          '--no-sandbox',
+          '--disable-blink-features=AutomationControlled',
+          '--disable-dev-shm-usage',
+          '--disable-infobars',
+          '--window-size=1920,1080',
+        ],
+      });
+
+      context = await browser.newContext({
+        userAgent: 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+        viewport: { width: 1920, height: 1080 },
+        locale: 'zh-CN',
+        timezoneId: 'Asia/Shanghai',
+        extraHTTPHeaders: {
+          'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+        },
+      });
+
+      // Anti-detection: override navigator.webdriver
+      await context.addInitScript(() => {
+        Object.defineProperty(navigator, 'webdriver', { get: () => false });
+        // Override chrome runtime
+        window.chrome = { runtime: {} };
+        // Override permissions
+        const originalQuery = window.navigator.permissions.query;
+        window.navigator.permissions.query = (parameters) =>
+          parameters.name === 'notifications'
+            ? Promise.resolve({ state: Notification.permission })
+            : originalQuery(parameters);
+        // Override plugins
+        Object.defineProperty(navigator, 'plugins', {
+          get: () => [1, 2, 3, 4, 5],
+        });
+        // Override languages
+        Object.defineProperty(navigator, 'languages', {
+          get: () => ['zh-CN', 'zh', 'en'],
+        });
+      });
+
+      const page = await context.newPage();
+
+      // First visit the main page to get cookies
+      console.log(`[Fetch] 访问首页获取 cookies (尝试 ${attempt + 1})...`);
+      await page.goto('https://www.cwl.gov.cn/', { waitUntil: 'domcontentloaded', timeout: 30000 });
+      await page.waitForTimeout(3000);
+
+      // Now navigate to the target page
+      console.log(`[Fetch] 导航到目标页面...`);
+      await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+
+      // Wait for data table to appear
+      await page.waitForSelector('td', { timeout: 20000 }).catch(() => {});
+      await page.waitForTimeout(5000);
+
+      const html = await page.content();
+
+      // Save debug HTML
+      debugSave(`page_${attempt}.html`, html);
+
+      // Check if we got a 403/blocked page
+      if (html.includes('403 Forbidden') || html.includes('blocksrc.haplat.net')) {
+        console.log(`[Fetch] 第 ${attempt + 1} 次尝试被反爬拦截，等待重试...`);
+        await context.close();
+        await browser.close();
+        if (attempt < retryCount - 1) {
+          await new Promise(r => setTimeout(r, 10000));
+          continue;
+        }
+        throw new Error('页面被反爬拦截 (403)');
+      }
+
+      await context.close();
+      await browser.close();
+      return html;
+
+    } catch (e) {
+      if (context) await context.close().catch(() => {});
+      if (browser) await browser.close().catch(() => {});
+      if (attempt < retryCount - 1) {
+        console.log(`[Fetch] 第 ${attempt + 1} 次尝试失败: ${e.message}，等待重试...`);
+        await new Promise(r => setTimeout(r, 10000));
+        continue;
+      }
+      throw e;
+    }
   }
+  throw new Error('所有尝试均失败');
 }
 
 function parseLatestPeriod(html) {
