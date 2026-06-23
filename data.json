@@ -1,5 +1,27 @@
 [
   {
+    "period": "2026071",
+    "date": "2026-06-23(二)",
+    "red": [
+      3,
+      8,
+      19,
+      25,
+      31,
+      33
+    ],
+    "blue": 5,
+    "sales": "373,089,958",
+    "pool": "398,183,968",
+    "firstPrizeCount": "8",
+    "firstPrizeAmount": "5,867,768",
+    "secondPrizeCount": "121",
+    "secondPrizeAmount": "229,492",
+    "prizes": {},
+    "firstPrizeDetail": "",
+    "nextPool": "398,183,968"
+  },
+  {
     "period": "2026070",
     "date": "2026-06-21(日)",
     "red": [
