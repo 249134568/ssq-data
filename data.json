@@ -14,11 +14,40 @@
     "sales": "373,089,958",
     "pool": "398,183,968",
     "firstPrizeCount": "8",
-    "firstPrizeAmount": "5,867,768",
+    "firstPrizeAmount": "5867768",
     "secondPrizeCount": "121",
-    "secondPrizeAmount": "229,492",
-    "prizes": {},
-    "firstPrizeDetail": "",
+    "secondPrizeAmount": "229492",
+    "prizes": {
+      "一等奖": {
+        "count": "8",
+        "amount": "5867768"
+      },
+      "二等奖": {
+        "count": "121",
+        "amount": "229492"
+      },
+      "三等奖": {
+        "count": "2419",
+        "amount": "3000"
+      },
+      "四等奖": {
+        "count": "121168",
+        "amount": "200"
+      },
+      "五等奖": {
+        "count": "1503066",
+        "amount": "10"
+      },
+      "六等奖": {
+        "count": "11221596",
+        "amount": "5"
+      },
+      "福运奖": {
+        "count": "9094821",
+        "amount": "5"
+      }
+    },
+    "firstPrizeDetail": "吉林1注，黑龙江1注，浙江1注，广东3注，甘肃1注，新疆1注，共8注。",
     "nextPool": "398,183,968"
   },
   {
@@ -36,11 +65,40 @@
     "sales": "398,555,946",
     "pool": "438,183,968",
     "firstPrizeCount": "11",
-    "firstPrizeAmount": "5,811,271",
+    "firstPrizeAmount": "5811271",
     "secondPrizeCount": "216",
-    "secondPrizeAmount": "165,258",
-    "prizes": {},
-    "firstPrizeDetail": "",
+    "secondPrizeAmount": "165258",
+    "prizes": {
+      "一等奖": {
+        "count": "11",
+        "amount": "5811271"
+      },
+      "二等奖": {
+        "count": "216",
+        "amount": "165258"
+      },
+      "三等奖": {
+        "count": "2030",
+        "amount": "3000"
+      },
+      "四等奖": {
+        "count": "98536",
+        "amount": "200"
+      },
+      "五等奖": {
+        "count": "1700584",
+        "amount": "10"
+      },
+      "六等奖": {
+        "count": "11007971",
+        "amount": "5"
+      },
+      "福运奖": {
+        "count": "10565919",
+        "amount": "5"
+      }
+    },
+    "firstPrizeDetail": "北京1注，浙江1注，安徽2注，福建1注，江西1注，河南3注，广东1注，广西1注，共11注。",
     "nextPool": "438,183,968"
   },
   {

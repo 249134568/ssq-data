@@ -4,8 +4,13 @@
 
   const DATA_KEY = 'ssq_lottery_data';
   const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/249134568/ssq-data/master/data.json';
+  const GITHUB_RAW_FALLBACKS = [
+    'https://cdn.jsdelivr.net/gh/249134568/ssq-data@master/data.json',
+    'https://fastly.jsdelivr.net/gh/249134568/ssq-data@master/data.json',
+  ];
+  const CWL_HOME = 'https://www.cwl.gov.cn/';
+  const CWL_API = 'https://www.cwl.gov.cn/cwl_admin/front/cwlkj/search/kjxx/findDrawNotice';
   const API_500_XML = 'https://kaijiang.500.com/static/info/kaijiang/xml/ssq/list.xml';
-  const API_500_CHART = 'https://datachart.500.com/ssq/history/newinc/history.php';
   const STORE_KEY = 'ssq_saved_predictions';
 
   // ========== Data Storage (localStorage) ==========
@@ -24,14 +29,18 @@
   // CapacitorHttp.request() with responseType:'text' may return resp.data
   // as either a string or an already-parsed object (depending on version/Content-Type).
   // This helper normalizes the response to always return the expected type.
-  async function capacitorHttpGet(url, expectType) {
+  async function capacitorHttpGet(url, expectType, extraHeaders = {}) {
     if (!window.Capacitor || !window.Capacitor.isNativePlatform()) return null;
 
     const { CapacitorHttp } = window.Capacitor.Plugins;
     const resp = await CapacitorHttp.request({
       url: url,
       method: 'GET',
-      headers: { 'Accept': expectType === 'json' ? 'application/json' : 'text/html,application/xml,*/*' },
+      headers: {
+        'Accept': expectType === 'json' ? 'application/json' : 'text/html,application/xml,*/*',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+        ...extraHeaders,
+      },
       responseType: 'text',
     });
 
@@ -113,12 +122,22 @@
       }
 
       if (!remoteData || remoteData.length === 0) {
-        console.log('[Mobile Bridge] 尝试 500.com API...');
+        console.log('[Mobile Bridge] 尝试 cwl.gov.cn JSON API...');
         try {
-          remoteData = await fetch500Data();
-          if (remoteData && remoteData.length > 0) source = '500com';
+          remoteData = await fetchCwlData(30);
+          if (remoteData && remoteData.length > 0) source = 'cwl';
         } catch (e) {
-          console.warn('[Mobile Bridge] 500.com API 获取失败:', e.message);
+          console.warn('[Mobile Bridge] cwl.gov.cn API 获取失败:', e.message);
+        }
+      }
+
+      if (!remoteData || remoteData.length === 0) {
+        console.log('[Mobile Bridge] 尝试 500.com XML 回退...');
+        try {
+          remoteData = await fetch500XmlFallback();
+          if (remoteData && remoteData.length > 0) source = '500xml';
+        } catch (e) {
+          console.warn('[Mobile Bridge] 500.com XML 回退失败:', e.message);
         }
       }
 
@@ -139,7 +158,9 @@
 
       const isIncomplete = (entry) => !entry.sales || entry.sales === '_'
         || !entry.pool || entry.pool === '_'
-        || !entry.firstPrizeCount || entry.firstPrizeCount === '_';
+        || !entry.firstPrizeCount || entry.firstPrizeCount === '_'
+        || !entry.firstPrizeDetail
+        || !entry.prizes || Object.keys(entry.prizes).length === 0;
 
       if (remoteLatest.period === latestLocal && !isIncomplete(localData[0])) {
         return { updated: false, reason: 'up_to_date', period: latestLocal };
@@ -161,6 +182,15 @@
           if (!existing.secondPrizeCount && remoteEntry.secondPrizeCount) { existing.secondPrizeCount = remoteEntry.secondPrizeCount; merged = true; }
           if (!existing.secondPrizeAmount && remoteEntry.secondPrizeAmount) { existing.secondPrizeAmount = remoteEntry.secondPrizeAmount; merged = true; }
           if (!existing.nextPool && remoteEntry.nextPool) { existing.nextPool = remoteEntry.nextPool; merged = true; }
+          // Fill missing prizes + firstPrizeDetail (the bug we are fixing)
+          if ((!existing.prizes || Object.keys(existing.prizes).length === 0) && remoteEntry.prizes && Object.keys(remoteEntry.prizes).length > 0) {
+            existing.prizes = remoteEntry.prizes;
+            merged = true;
+          }
+          if (!existing.firstPrizeDetail && remoteEntry.firstPrizeDetail) {
+            existing.firstPrizeDetail = remoteEntry.firstPrizeDetail;
+            merged = true;
+          }
           // Always overwrite balls/date if remote has valid data (in case of corrections)
           if (remoteEntry.red && remoteEntry.red.length === 6 && remoteEntry.blue) {
             existing.red = remoteEntry.red;
@@ -200,25 +230,104 @@
     }
   }
 
-  // Fetch data from GitHub Raw (no anti-bot, plain JSON)
+  // Fetch data from GitHub Raw (no anti-bot, plain JSON) — with CDN fallbacks + retry
   async function fetchGithubData() {
-    if (window.Capacitor && window.Capacitor.isNativePlatform()) {
-      const data = await capacitorHttpGet(GITHUB_RAW_URL, 'json');
-      if (Array.isArray(data)) return data;
-      return null;
+    const urls = [GITHUB_RAW_URL, ...GITHUB_RAW_FALLBACKS];
+    for (const url of urls) {
+      for (let attempt = 1; attempt <= 2; attempt++) {
+        try {
+          if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+            const data = await capacitorHttpGet(url, 'json');
+            if (Array.isArray(data) && data.length > 0) return data;
+          } else {
+            const resp = await originalFetch(url, { cache: 'no-store' });
+            if (resp.ok) {
+              const data = await resp.json();
+              if (Array.isArray(data) && data.length > 0) return data;
+            }
+          }
+        } catch (e) {
+          console.warn(`[Mobile Bridge] GitHub Raw ${url} 第 ${attempt} 次失败:`, e.message);
+        }
+      }
     }
-    // Browser fallback
-    const resp = await originalFetch(GITHUB_RAW_URL);
-    return await resp.json();
+    return null;
   }
 
-  // Fetch data from 500.com API (no anti-bot, XML + HTML)
-  async function fetch500Data() {
-    // Step 1: Get XML for basic draw results
+  // Fetch data from cwl.gov.cn JSON API — complete prize data + first prize locations
+  async function fetchCwlData(periods = 30) {
+    // Step 1: warm up cookies (HMF_CI anti-bot)
+    const home = await nativeFetchText(CWL_HOME);
+    // Step 2: call JSON API
+    const apiUrl = `${CWL_API}?name=ssq&issueNo=&pageSize=${periods}&pageNo=1&_=${Date.now()}`;
+    const body = await nativeFetchText(apiUrl, {
+      Cookie: extractCookies(home),
+      Referer: 'https://www.cwl.gov.cn/ygkj/wqkjgg/ssq/',
+      Accept: 'application/json, text/plain, */*',
+    });
+    if (!body) return null;
+    let json;
+    try { json = JSON.parse(body); } catch { return null; }
+    if (!json || json.state !== 0 || !Array.isArray(json.result)) return null;
+
+    // Convert to our data.json format
+    const results = [];
+    for (const item of json.result) {
+      const entry = convertCwlEntry(item);
+      if (entry) results.push(entry);
+    }
+    return results.length > 0 ? results : null;
+  }
+
+  // Convert cwl.gov.cn API item to our data.json entry format
+  function convertCwlEntry(item) {
+    const period = item.code;
+    const red = (item.red || '').split(',').map(n => parseInt(n.trim(), 10)).filter(n => n > 0);
+    const blue = parseInt((item.blue || '0').trim(), 10);
+    if (red.length !== 6 || !blue) return null;
+
+    const prizeMap = { 1: '一等奖', 2: '二等奖', 3: '三等奖', 4: '四等奖', 5: '五等奖', 6: '六等奖', 7: '福运奖' };
+    const prizes = {};
+    for (const g of (item.prizegrades || [])) {
+      const name = prizeMap[g.type];
+      if (!name) continue;
+      const count = String(g.typenum || '');
+      const amount = String(g.typemoney || '');
+      if (count || amount) prizes[name] = { count, amount };
+    }
+    if (!prizes['福运奖'] && item.fyjCount) {
+      prizes['福运奖'] = { count: String(item.fyjCount), amount: String(item.fyjMoney || '5') };
+    }
+
+    return {
+      period,
+      date: item.date || '',
+      red, blue,
+      sales: item.sales ? Number(item.sales).toLocaleString('en-US') : '',
+      pool: item.poolmoney ? Number(item.poolmoney).toLocaleString('en-US') : '',
+      firstPrizeCount: prizes['一等奖']?.count || '',
+      firstPrizeAmount: prizes['一等奖']?.amount || '',
+      secondPrizeCount: prizes['二等奖']?.count || '',
+      secondPrizeAmount: prizes['二等奖']?.amount || '',
+      prizes,
+      firstPrizeDetail: item.content || '',
+      nextPool: item.poolmoney ? Number(item.poolmoney).toLocaleString('en-US') : '',
+    };
+  }
+
+  // Extract Set-Cookie values from CapacitorHttp response headers (best-effort)
+  function extractCookies(_homeBody) {
+    // CapacitorHttp does not expose Set-Cookie headers reliably across versions;
+    // cwl.gov.cn API works without cookies in most cases. If it starts rejecting,
+    // we fall back to 500.com XML via fetch500XmlFallback below.
+    return '';
+  }
+
+  // Fallback: 500.com XML for basic balls only (no prize detail)
+  async function fetch500XmlFallback() {
     const xml = await nativeFetchText(API_500_XML);
     if (!xml || !xml.includes('<row')) return null;
-
-    const xmlRows = [];
+    const results = [];
     const rowRegex = /<row\s+expect="(\d+)"\s+opencode="([^"]+)"\s+opentime="([^"]+)"/g;
     let match;
     while ((match = rowRegex.exec(xml)) !== null) {
@@ -233,71 +342,32 @@
         const dateStr = opentime.split(' ')[0];
         const dateObj = new Date(dateStr);
         const dayOfWeek = ['日', '一', '二', '三', '四', '五', '六'][dateObj.getDay()];
-        xmlRows.push({ period: fullPeriod, red, blue, date: `${dateStr}(${dayOfWeek})` });
+        results.push({
+          period: fullPeriod, date: `${dateStr}(${dayOfWeek})`,
+          red, blue,
+          sales: '', pool: '',
+          firstPrizeCount: '', firstPrizeAmount: '',
+          secondPrizeCount: '', secondPrizeAmount: '',
+          prizes: {}, firstPrizeDetail: '', nextPool: '',
+        });
+        if (results.length >= 10) break;
       }
     }
-
-    if (xmlRows.length === 0) return null;
-
-    // Step 2: Get datachart for detailed data (last 5 periods)
-    const latestShort = xmlRows[0].period.slice(-5);
-    const startPeriod = String(Number(latestShort) - 4);
-    const chartHtml = await nativeFetchText(`${API_500_CHART}?start=${startPeriod}&end=${latestShort}`);
-
-    const chartMap = {};
-    if (chartHtml) {
-      const trRegex = /<tr\s+class="t_tr1"[^>]*>([\s\S]*?)<\/tr>/g;
-      let trMatch;
-      while ((trMatch = trRegex.exec(chartHtml)) !== null) {
-        // Strip HTML comments before parsing <td>
-        const trContent = trMatch[1].replace(/<!--[\s\S]*?-->/g, '');
-        const tdRegex = /<td[^>]*>([\s\S]*?)<\/td>/g;
-        const cells = [];
-        let tdMatch;
-        while ((tdMatch = tdRegex.exec(trContent)) !== null) {
-          cells.push(tdMatch[1].replace(/<[^>]+>/g, '').trim());
-        }
-        if (cells.length >= 16) {
-          const period = cells[0];
-          const fullPeriod = period.length === 5 ? '20' + period : period;
-          const red = cells.slice(1, 7).map(n => parseInt(n.trim(), 10));
-          const blue = parseInt(cells[7].trim(), 10);
-          if (red.length === 6 && red.every(n => n > 0) && blue > 0) {
-            chartMap[fullPeriod] = {
-              sales: cells[14], pool: cells[9],
-              firstPrizeCount: cells[10], firstPrizeAmount: cells[11],
-              secondPrizeCount: cells[12], secondPrizeAmount: cells[13],
-            };
-          }
-        }
-      }
-    }
-
-    // Merge XML + datachart data
-    const results = [];
-    for (const xmlRow of xmlRows) {
-      const detail = chartMap[xmlRow.period] || {};
-      results.push({
-        period: xmlRow.period, date: xmlRow.date, red: xmlRow.red, blue: xmlRow.blue,
-        sales: detail.sales || '', pool: detail.pool || '',
-        firstPrizeCount: detail.firstPrizeCount || '', firstPrizeAmount: detail.firstPrizeAmount || '',
-        secondPrizeCount: detail.secondPrizeCount || '', secondPrizeAmount: detail.secondPrizeAmount || '',
-        prizes: {}, firstPrizeDetail: '', nextPool: detail.pool || '',
-      });
-      // Only process recent 10 entries
-      if (results.length >= 10) break;
-    }
-
     return results.length > 0 ? results : null;
   }
 
   // Native fetch that returns text (for XML/HTML APIs)
-  async function nativeFetchText(url) {
+  async function nativeFetchText(url, extraHeaders = {}) {
     if (window.Capacitor && window.Capacitor.isNativePlatform()) {
-      return await capacitorHttpGet(url, 'text');
+      return await capacitorHttpGet(url, 'text', extraHeaders);
     }
     try {
-      const resp = await originalFetch(url);
+      const resp = await originalFetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          ...extraHeaders,
+        },
+      });
       return await resp.text();
     } catch {
       return null;
