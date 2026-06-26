@@ -110,27 +110,49 @@
     isUpdating = true;
 
     try {
-      // Try GitHub Raw first (auto-updated by GitHub Actions), fallback to 500.com API
+      // 优先从 cwl.gov.cn 抓最新数据(实时开奖),GitHub 作为备份
+      // 之前是 GitHub 优先,但 GitHub Actions 可能失败导致数据滞后
       let remoteData = null;
       let source = '';
 
+      const localData0 = loadDataArray();
+      const latestLocal0 = localData0.length > 0 ? localData0[0].period : null;
+
+      // 1. 先尝试 cwl.gov.cn(最新数据)
       try {
-        remoteData = await fetchGithubData();
-        if (remoteData && remoteData.length > 0) source = 'github';
+        console.log('[Mobile Bridge] 尝试 cwl.gov.cn JSON API...');
+        remoteData = await fetchCwlData(30);
+        if (remoteData && remoteData.length > 0) source = 'cwl';
       } catch (e) {
-        console.warn('[Mobile Bridge] GitHub Raw 获取失败:', e.message);
+        console.warn('[Mobile Bridge] cwl.gov.cn API 获取失败:', e.message);
       }
 
-      if (!remoteData || remoteData.length === 0) {
-        console.log('[Mobile Bridge] 尝试 cwl.gov.cn JSON API...');
+      // 2. 如果 cwl 失败,或 cwl 数据不比本地新,尝试 GitHub(可能滞后但稳定)
+      const cwlLatest = remoteData && remoteData[0] ? remoteData[0].period : null;
+      const cwlIsNewer = cwlLatest && (!latestLocal0 || cwlLatest > latestLocal0);
+
+      if (!cwlIsNewer) {
+        console.log('[Mobile Bridge] 尝试 GitHub Raw 备份源...');
         try {
-          remoteData = await fetchCwlData(30);
-          if (remoteData && remoteData.length > 0) source = 'cwl';
+          const ghData = await fetchGithubData();
+          if (ghData && ghData.length > 0) {
+            const ghLatest = ghData[0].period;
+            // 只在 GitHub 数据比本地新时使用
+            if (ghLatest && (!latestLocal0 || ghLatest > latestLocal0)) {
+              remoteData = ghData;
+              source = 'github';
+            } else if (!remoteData) {
+              // GitHub 也不比本地新,但至少有数据,用作兜底
+              remoteData = ghData;
+              source = 'github';
+            }
+          }
         } catch (e) {
-          console.warn('[Mobile Bridge] cwl.gov.cn API 获取失败:', e.message);
+          console.warn('[Mobile Bridge] GitHub Raw 获取失败:', e.message);
         }
       }
 
+      // 3. 最后回退到 500.com XML
       if (!remoteData || remoteData.length === 0) {
         console.log('[Mobile Bridge] 尝试 500.com XML 回退...');
         try {
@@ -162,7 +184,13 @@
         || !entry.firstPrizeDetail
         || !entry.prizes || Object.keys(entry.prizes).length === 0;
 
+      // 只有远程不比本地新、且本地数据完整时,才算 up_to_date
       if (remoteLatest.period === latestLocal && !isIncomplete(localData[0])) {
+        return { updated: false, reason: 'up_to_date', period: latestLocal };
+      }
+
+      // 如果远程比本地旧,也返回 up_to_date(避免误把旧数据当新数据)
+      if (latestLocal && remoteLatest.period < latestLocal) {
         return { updated: false, reason: 'up_to_date', period: latestLocal };
       }
 

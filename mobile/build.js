@@ -16,7 +16,37 @@ let html = fs.readFileSync(path.join(SRC, 'index.html'), 'utf-8');
 const mobileBridge = fs.readFileSync(path.join(__dirname, 'mobile-bridge.js'), 'utf-8');
 html = html.replace('</head>', `<script>${mobileBridge}</script></head>`);
 
+// Inject mobile viewport + safe-area CSS
+const mobileStyle = `
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<style>
+  :root { --safe-top: env(safe-area-inset-top, 0px); --safe-bottom: env(safe-area-inset-bottom, 0px); }
+  html, body { -webkit-tap-highlight-color: transparent; overscroll-behavior: none; }
+  body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
+  .nav-inner { padding-top: calc(6px + var(--safe-top)) !important; }
+  /* 移动端字号适配 */
+  @media (max-width: 480px) {
+    .card-title { font-size: 16px; }
+    .ball-lg { width: 36px; height: 36px; font-size: 16px; line-height: 36px; }
+    .ball-xl { width: 44px; height: 44px; font-size: 20px; line-height: 44px; }
+  }
+  /* 防止 iOS 输入框缩放 */
+  input, select, textarea { font-size: 16px !important; }
+  /* 长按菜单禁用 */
+  * { -webkit-touch-callout: none; }
+  /* 滚动惯性 */
+  .history-table-wrap, .cold-compare, .prize-detail-content { -webkit-overflow-scrolling: touch; }
+</style>
+`;
+html = html.replace('</head>', mobileStyle + '</head>');
+
 fs.writeFileSync(path.join(WWW, 'index.html'), html);
+
+// Copy coldness.js (新增的冷门度模块)
+const coldnessSrc = path.join(SRC, 'coldness.js');
+if (fs.existsSync(coldnessSrc)) {
+  fs.copyFileSync(coldnessSrc, path.join(WWW, 'coldness.js'));
+}
 
 // Copy backtest files
 for (const f of ['backtest-ui.js', 'backtest-worker.js', 'backtest.css', 'prng.js']) {

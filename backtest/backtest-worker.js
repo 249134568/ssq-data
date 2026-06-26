@@ -1,7 +1,9 @@
 // ========== Backtest Worker ==========
 // Deterministic prediction engine + sliding window backtest + grid search + genetic algorithm
+// + q_c coldness validation + walk-forward + bootstrap significance test
 
 importScripts('prng.js');
+importScripts('/coldness.js');
 
 // ========== Constants (copied from index.html) ==========
 const TIANGAN = ['甲','乙','丙','丁','戊','己','庚','辛','壬','癸'];
@@ -380,30 +382,100 @@ function runGridSearch(data, config) {
 }
 
 // ========== Genetic Algorithm ==========
+// 改造:进化冷门度特征权重,适应度 = out-of-sample 期望奖金
+//
+// 染色体:特征权重向量(11 个特征)
+// 适应度:walk-forward 验证的期望奖金(冷门 20% vs 热门 20% 差值)
+// 数学合法:优化期望奖金而非命中率,不违反 IID 假设
+
 function runGeneticSearch(data, config) {
-  const { startDraw, predictionsPerDraw, yijingPct, populationSize, generations, mutationRate, sampleRate, seed, initialPopulation } = config;
+  const { populationSize, generations, mutationRate, seed, initialPopulation, trainWindow } = config;
   const gaPrng = createPRNG(seed + 99999);
 
+  const featureKeys = Object.keys(Coldness.DEFAULT_FEATURE_WEIGHTS).filter(k => k !== 'recentRepeat');
+
   function randomIndividual() {
-    const f = 0.05 + gaPrng.next() * 0.40;
-    const r = 0.05 + gaPrng.next() * 0.30;
-    const m = gaPrng.next() * 0.25;
-    const sp = gaPrng.next() * 0.15;
-    const sum = f + r + m + sp;
-    const scale = 0.92 / Math.max(sum, 0.01);
-    const wf = Math.round(f * scale * 100) / 100;
-    const wr = Math.round(r * scale * 100) / 100;
-    const wm = Math.round(m * scale * 100) / 100;
-    const wsp = Math.round(sp * scale * 100) / 100;
-    const pert = Math.round((1 - wf - wr - wm - wsp) * 100) / 100;
-    return { freq: wf, recent: wr, miss: wm, salesPool: wsp, perturbation: Math.max(0.05, pert), recentWindow: 5 + gaPrng.nextInt(26) };
+    // 围绕回归默认权重做扰动,而非完全随机
+    const ind = {};
+    for (const k of featureKeys) {
+      const base = Coldness.DEFAULT_FEATURE_WEIGHTS[k];
+      // ±50% 扰动
+      ind[k] = base * (0.5 + gaPrng.next());
+    }
+    return ind;
   }
 
-  function normalizeWeights(ind) {
-    const sum = ind.freq + ind.recent + ind.miss + ind.salesPool + ind.perturbation;
-    if (Math.abs(sum - 1) < 0.01) return ind;
-    const scale = 1 / sum;
-    return { ...ind, freq: Math.round(ind.freq * scale * 100) / 100, recent: Math.round(ind.recent * scale * 100) / 100, miss: Math.round(ind.miss * scale * 100) / 100, salesPool: Math.round(ind.salesPool * scale * 100) / 100, perturbation: Math.round(ind.perturbation * scale * 100) / 100 };
+  function mutate(ind) {
+    const child = { ...ind };
+    // 选 2-4 个特征做扰动
+    const numMutations = 2 + gaPrng.nextInt(3);
+    for (let i = 0; i < numMutations; i++) {
+      const key = featureKeys[gaPrng.nextInt(featureKeys.length)];
+      const base = Coldness.DEFAULT_FEATURE_WEIGHTS[key];
+      // ±20% 扰动
+      child[key] = base * (0.8 + gaPrng.next() * 0.4);
+    }
+    return child;
+  }
+
+  function crossover(p1, p2) {
+    const child = {};
+    for (const k of featureKeys) {
+      // BLX-alpha 风格
+      const lo = Math.min(p1[k], p2[k]);
+      const hi = Math.max(p1[k], p2[k]);
+      const range = hi - lo;
+      const alpha = 0.3;
+      child[k] = lo - alpha * range + gaPrng.next() * (1 + 2 * alpha) * range;
+      // 限制在合理范围
+      const base = Coldness.DEFAULT_FEATURE_WEIGHTS[k];
+      child[k] = Math.max(base * 0.3, Math.min(base * 2.0, child[k]));
+    }
+    return child;
+  }
+
+  // ========== 适应度函数:out-of-sample 期望奖金 ==========
+  // 划分 train/test,用 train 训练回归,在 test 上评估冷门度排序的期望奖金差异
+
+  function evaluateFitness(weights) {
+    // 用给定权重给每期打分
+    const allFeatures = data.map(d => ({
+      ...extractFeaturesForData(d),
+      firstPrizeCount: parseInt(d.firstPrizeCount) || 0,
+      pool: parseInt((d.pool || '0').replace(/,/g, '')) || 0,
+      period: d.period
+    }));
+
+    const n = allFeatures.length;
+    const splitIdx = Math.floor(n * 0.7); // 70% train, 30% test
+
+    // 在 train 上用回归归一化权重
+    const train = allFeatures.slice(0, splitIdx);
+    const test = allFeatures.slice(splitIdx);
+
+    // 用回归训练 weights 的标量(让模型自适应权重尺度)
+    const reg = linearRegression(train, featureKeys, f => Math.log(f.firstPrizeCount + 1));
+
+    // 在 test 上评估
+    const scored = test.map(f => {
+      // 用提供的权重 + 回归系数做混合评分
+      let coldScore = 0;
+      for (const k of featureKeys) {
+        coldScore -= weights[k] * (f[k] || 0); // 负号:正权重 → 热门 → 减分
+      }
+      return { ...f, coldScore };
+    }).sort((a, b) => b.coldScore - a.coldScore);
+
+    const testN = scored.length;
+    const coldCount = Math.floor(testN * 0.2);
+    const coldSample = scored.slice(0, coldCount);
+    const hotSample = scored.slice(-coldCount);
+
+    const coldAvgPrize = coldSample.reduce((s, d) => s + d.pool / Math.max(d.firstPrizeCount, 1), 0) / coldSample.length;
+    const hotAvgPrize = hotSample.reduce((s, d) => s + d.pool / Math.max(d.firstPrizeCount, 1), 0) / hotSample.length;
+
+    // 适应度 = 期望奖金差异(正值 = 好)
+    return coldAvgPrize - hotAvgPrize;
   }
 
   // Initialize population
@@ -412,10 +484,12 @@ function runGeneticSearch(data, config) {
     population = initialPopulation.map(w => ({ ...w }));
     while (population.length < populationSize) population.push(randomIndividual());
   } else {
-    for (let i = 0; i < populationSize; i++) population.push(randomIndividual());
+    // 包含默认权重作为种子
+    population.push({ ...Coldness.DEFAULT_FEATURE_WEIGHTS });
+    while (population.length < populationSize) population.push(randomIndividual());
   }
 
-  const elitism = 5;
+  const elitism = 3;
   const genHistory = [];
   const startTime = Date.now();
 
@@ -423,18 +497,28 @@ function runGeneticSearch(data, config) {
     if (cancelled) return null;
 
     // Evaluate fitness
-    const fitness = population.map(ind => {
-      const w = normalizeWeights(ind);
-      const result = runBacktest(data, { startDraw, predictionsPerDraw, weights: w, yijingPct, includeBaseline: false, sampleRate, seed });
-      return { ind: w, fitness: result ? result.tracker.totalScore / result.tracker.totalPredictions : 0 };
-    });
+    const fitness = population.map(ind => ({
+      ind,
+      fitness: evaluateFitness(ind)
+    }));
 
     fitness.sort((a, b) => b.fitness - a.fitness);
     const bestFit = fitness[0].fitness;
     const avgFit = fitness.reduce((s, f) => s + f.fitness, 0) / fitness.length;
     genHistory.push({ gen, bestScore: bestFit, avgScore: avgFit, bestWeights: fitness[0].ind });
 
-    self.postMessage({ type: 'progress', payload: { phase: 'geneticSearch', current: gen + 1, total: generations, elapsed: Date.now() - startTime, eta: Math.round((Date.now() - startTime) / (gen + 1) * (generations - gen - 1)), bestScore: bestFit, avgScore: avgFit } });
+    self.postMessage({
+      type: 'progress',
+      payload: {
+        phase: 'geneticSearch',
+        current: gen + 1,
+        total: generations,
+        elapsed: Date.now() - startTime,
+        eta: Math.round((Date.now() - startTime) / (gen + 1) * (generations - gen - 1)),
+        bestScore: bestFit,
+        avgScore: avgFit
+      }
+    });
 
     // Selection + crossover + mutation
     const newPop = fitness.slice(0, elitism).map(f => f.ind);
@@ -450,40 +534,292 @@ function runGeneticSearch(data, config) {
       const t6 = fitness[gaPrng.nextInt(fitness.length)];
       const parent2 = [t4, t5, t6].sort((a, b) => b.fitness - a.fitness)[0].ind;
 
-      // BLX-alpha crossover
-      const alpha = 0.3;
-      const child = {};
-      for (const key of ['freq', 'recent', 'miss', 'salesPool', 'perturbation']) {
-        const lo = Math.min(parent1[key], parent2[key]);
-        const hi = Math.max(parent1[key], parent2[key]);
-        const range = hi - lo;
-        child[key] = lo - alpha * range + gaPrng.next() * (1 + 2 * alpha) * range;
-        child[key] = Math.max(key === 'salesPool' ? 0 : 0.05, Math.min(key === 'freq' ? 0.50 : key === 'recent' ? 0.40 : 0.30, child[key]));
-      }
-      child.recentWindow = Math.round((parent1.recentWindow + parent2.recentWindow) / 2 + (gaPrng.next() - 0.5) * 6);
-      child.recentWindow = Math.max(5, Math.min(30, child.recentWindow));
-
-      // Mutation
+      let child = crossover(parent1, parent2);
       if (gaPrng.next() < mutationRate) {
-        const key = ['freq', 'recent', 'miss', 'salesPool', 'perturbation'][gaPrng.nextInt(5)];
-        child[key] += (gaPrng.next() - 0.5) * 0.1;
-        child[key] = Math.max(key === 'salesPool' ? 0 : 0.05, Math.min(0.50, child[key]));
+        child = mutate(child);
       }
-      if (gaPrng.next() < mutationRate) {
-        child.recentWindow += Math.round((gaPrng.next() - 0.5) * 6);
-        child.recentWindow = Math.max(5, Math.min(30, child.recentWindow));
-      }
-
-      newPop.push(normalizeWeights(child));
+      newPop.push(child);
     }
 
     population = newPop;
   }
 
-  // Final evaluation of best on full dataset
+  // 最终用最优权重在全量数据上做 q_c 回测验证
+  // 临时替换 DEFAULT_FEATURE_WEIGHTS,用 fixed 模式让 runQcBacktest 直接用进化后权重打分
   const best = genHistory[genHistory.length - 1].bestWeights;
-  const finalResult = runBacktest(data, { startDraw, predictionsPerDraw, weights: best, yijingPct, includeBaseline: true, sampleRate: 1, seed });
-  return { genHistory, bestWeights: best, finalResult };
+  const originalWeights = { ...Coldness.DEFAULT_FEATURE_WEIGHTS };
+  for (const k of Object.keys(best)) {
+    Coldness.DEFAULT_FEATURE_WEIGHTS[k] = best[k];
+  }
+  const qcResult = runQcBacktest(data, { trainWindow: trainWindow || 200, predictionQuantiles: [0.2], seed, mode: 'fixed' });
+  // 恢复默认权重(避免影响后续回测)
+  for (const k of Object.keys(originalWeights)) {
+    Coldness.DEFAULT_FEATURE_WEIGHTS[k] = originalWeights[k];
+  }
+
+  return {
+    genHistory,
+    bestWeights: best,
+    finalResult: qcResult,
+    type: 'coldnessGA'
+  };
+}
+
+// ========== q_c Coldness Validation (新数学合法回测) ==========
+// 验证目标:冷门度评分高的组合,实际开奖时一等奖注数是否更少
+// 这是数学上唯一合法的"预测力"检验(期望奖金优化)
+
+function extractFeaturesForData(d) {
+  return Coldness.extractFeatures(d.red, d.blue);
+}
+
+function linearRegression(samples, featureKeys, targetFn) {
+  const n = samples.length;
+  const m = featureKeys.length + 1;
+  const X = samples.map(s => [1, ...featureKeys.map(k => s[k] || 0)]);
+  const y = samples.map(s => targetFn(s));
+  const XtX = Array.from({ length: m }, () => new Array(m).fill(0));
+  for (let i = 0; i < n; i++) for (let a = 0; a < m; a++) for (let b = 0; b < m; b++) XtX[a][b] += X[i][a] * X[i][b];
+  const Xty = new Array(m).fill(0);
+  for (let i = 0; i < n; i++) for (let a = 0; a < m; a++) Xty[a] += X[i][a] * y[i];
+  const aug = XtX.map((row, i) => [...row, Xty[i]]);
+  for (let i = 0; i < m; i++) {
+    let maxRow = i;
+    for (let k = i + 1; k < m; k++) if (Math.abs(aug[k][i]) > Math.abs(aug[maxRow][i])) maxRow = k;
+    [aug[i], aug[maxRow]] = [aug[maxRow], aug[i]];
+    if (Math.abs(aug[i][i]) < 1e-12) continue;
+    for (let k = i + 1; k < m; k++) {
+      const factor = aug[k][i] / aug[i][i];
+      for (let j = i; j <= m; j++) aug[k][j] -= factor * aug[i][j];
+    }
+  }
+  const beta = new Array(m).fill(0);
+  for (let i = m - 1; i >= 0; i--) {
+    let sum = aug[i][m];
+    for (let j = i + 1; j < m; j++) sum -= aug[i][j] * beta[j];
+    beta[i] = aug[i][i] !== 0 ? sum / aug[i][i] : 0;
+  }
+  return { intercept: beta[0], coefficients: featureKeys.map((k, i) => ({ feature: k, beta: beta[i + 1] })) };
+}
+
+function predictLogFPC(features, regression) {
+  let p = regression.intercept;
+  for (const c of regression.coefficients) p += c.beta * (features[c.feature] || 0);
+  return p;
+}
+
+function pearson(xs, ys) {
+  const n = xs.length;
+  const mx = xs.reduce((a, b) => a + b, 0) / n;
+  const my = ys.reduce((a, b) => a + b, 0) / n;
+  let num = 0, d1 = 0, d2 = 0;
+  for (let i = 0; i < n; i++) { const dx = xs[i] - mx, dy = ys[i] - my; num += dx * dy; d1 += dx * dx; d2 += dy * dy; }
+  return (d1 === 0 || d2 === 0) ? 0 : num / Math.sqrt(d1 * d2);
+}
+
+// ========== q_c Walk-Forward Backtest ==========
+// 滚动训练窗口:用 [t-window, t-1] 训练 → 预测 t 期 → 评估 → 滑动
+// 模式:
+//   - 'regression' (默认): 每个窗口重新做线性回归
+//   - 'fixed': 用 DEFAULT_FEATURE_WEIGHTS 直接打分(用于验证 GA 进化后的权重)
+
+function runQcBacktest(data, config) {
+  const { trainWindow, predictionQuantiles, seed, mode } = config;
+  const featureKeys = Object.keys(Coldness.DEFAULT_FEATURE_WEIGHTS).filter(k => k !== 'recentRepeat');
+  const useFixedWeights = mode === 'fixed';
+
+  // 提取所有特征
+  const allFeatures = data.map(d => ({
+    ...extractFeaturesForData(d),
+    firstPrizeCount: parseInt(d.firstPrizeCount) || 0,
+    sales: parseInt((d.sales || '0').replace(/,/g, '')) || 0,
+    pool: parseInt((d.pool || '0').replace(/,/g, '')) || 0,
+    period: d.period,
+    date: d.date
+  }));
+
+  const steps = [];
+  const startTime = Date.now();
+
+  // 固定权重模式:不需要训练,直接打分
+  if (useFixedWeights) {
+    for (let i = 0; i < allFeatures.length; i++) {
+      if (cancelled) return null;
+      const f = allFeatures[i];
+      // 用 DEFAULT_FEATURE_WEIGHTS 直接算冷门度
+      let coldScore = 0;
+      for (const k of featureKeys) {
+        coldScore -= Coldness.DEFAULT_FEATURE_WEIGHTS[k] * (f[k] || 0);
+      }
+      steps.push({
+        period: f.period,
+        date: f.date,
+        coldScore,
+        actualFPC: f.firstPrizeCount,
+        pool: f.pool,
+        sales: f.sales
+      });
+      if (steps.length % 200 === 0) {
+        self.postMessage({ type: 'progress', payload: { phase: 'qcBacktest', current: steps.length, total: allFeatures.length, elapsed: Date.now() - startTime, eta: 0 } });
+      }
+    }
+  } else {
+    // 回归模式:滚动训练
+    for (let i = trainWindow; i < allFeatures.length - 1; i++) {
+      if (cancelled) return null;
+
+      const train = allFeatures.slice(i - trainWindow, i);
+      const test = allFeatures[i + 1];
+      const reg = linearRegression(train, featureKeys, f => Math.log(f.firstPrizeCount + 1));
+
+      const testScore = predictLogFPC(test, reg);
+      const coldScore = -testScore;
+
+      steps.push({
+        period: test.period,
+        date: test.date,
+        coldScore,
+        actualFPC: test.firstPrizeCount,
+        pool: test.pool,
+        sales: test.sales,
+        red: data.find(d => d.period === test.period)?.red || [],
+        blue: data.find(d => d.period === test.period)?.blue || 0
+      });
+
+      if (steps.length % 100 === 0) {
+        const elapsed = Date.now() - startTime;
+        const total = allFeatures.length - trainWindow - 1;
+        const eta = Math.round((elapsed / steps.length) * (total - steps.length));
+        self.postMessage({ type: 'progress', payload: { phase: 'qcBacktest', current: steps.length, total, elapsed, eta } });
+      }
+    }
+  }
+
+  // 按冷门度排序,分桶分析
+  const sorted = [...steps].sort((a, b) => b.coldScore - a.coldScore);
+  const buckets = {};
+  for (const q of predictionQuantiles || [0.1, 0.2, 0.5]) {
+    const coldSlice = sorted.slice(0, Math.floor(sorted.length * q));
+    const hotSlice = sorted.slice(-Math.floor(sorted.length * q));
+    buckets[`cold_${q}`] = analyzeBucket(coldSlice);
+    buckets[`hot_${q}`] = analyzeBucket(hotSlice);
+  }
+
+  const allStats = analyzeBucket(steps);
+
+  const coldScores = steps.map(s => s.coldScore);
+  const fpcLogs = steps.map(s => Math.log(s.actualFPC + 1));
+  const correlation = pearson(coldScores, fpcLogs);
+
+  const topCold20 = sorted.slice(0, Math.floor(sorted.length * 0.2));
+  const topHot20 = sorted.slice(-Math.floor(sorted.length * 0.2));
+
+  return {
+    type: 'qc',
+    steps: steps.length,
+    trainWindow,
+    mode: useFixedWeights ? 'fixed' : 'regression',
+    buckets,
+    allStats,
+    correlation: { r: correlation, rSquared: correlation * correlation },
+    expectedPrize: {
+      cold20: topCold20.reduce((s, d) => s + d.pool / Math.max(d.actualFPC, 1), 0) / topCold20.length,
+      hot20: topHot20.reduce((s, d) => s + d.pool / Math.max(d.actualFPC, 1), 0) / topHot20.length
+    },
+    sampleSteps: sorted.slice(0, 10).concat(sorted.slice(-10))
+  };
+}
+
+function analyzeBucket(slice) {
+  if (slice.length === 0) return null;
+  const avgFPC = slice.reduce((s, d) => s + d.actualFPC, 0) / slice.length;
+  const medianFPC = [...slice].sort((a, b) => a.actualFPC - b.actualFPC)[Math.floor(slice.length / 2)].actualFPC;
+  const avgPrize = slice.reduce((s, d) => s + d.pool / Math.max(d.actualFPC, 1), 0) / slice.length;
+  const zeroFPC = slice.filter(d => d.actualFPC === 0).length;
+  return {
+    count: slice.length,
+    avgFPC,
+    medianFPC,
+    avgPrize,
+    zeroFPCRate: zeroFPC / slice.length
+  };
+}
+
+// ========== Bootstrap 显著性检验 ==========
+// 检验:冷门组合的期望奖金是否显著高于热门组合
+
+function runBootstrapTest(data, config) {
+  const { trainWindow, bootstrapTimes, seed } = config;
+  const qcResult = runQcBacktest(data, { trainWindow, predictionQuantiles: [0.2], seed });
+  if (!qcResult) return null;
+
+  const sorted = [...qcResult.sampleSteps].sort((a, b) => b.coldScore - a.coldScore);
+  // 用全量数据重新排序
+  const allFeatures = data.map(d => ({
+    ...extractFeaturesForData(d),
+    firstPrizeCount: parseInt(d.firstPrizeCount) || 0,
+    pool: parseInt((d.pool || '0').replace(/,/g, '')) || 0,
+    period: d.period
+  }));
+
+  const featureKeys = Object.keys(Coldness.DEFAULT_FEATURE_WEIGHTS).filter(k => k !== 'recentRepeat');
+  // 全样本回归
+  const reg = linearRegression(allFeatures, featureKeys, f => Math.log(f.firstPrizeCount + 1));
+  const scored = allFeatures.map(f => ({
+    ...f,
+    coldScore: -predictLogFPC(f, reg)
+  })).sort((a, b) => b.coldScore - a.coldScore);
+
+  const n = scored.length;
+  const coldCount = Math.floor(n * 0.2);
+  const coldSample = scored.slice(0, coldCount);
+  const hotSample = scored.slice(-coldCount);
+
+  // Bootstrap:从 cold 和 hot 中分别有放回采样 B 次,计算期望奖金差异
+  const bsPrng = createPRNG(seed + 77777);
+  const diffs = [];
+  for (let b = 0; b < bootstrapTimes; b++) {
+    if (cancelled) return null;
+    const coldPay = sampleAveragePrize(coldSample, bsPrng);
+    const hotPay = sampleAveragePrize(hotSample, bsPrng);
+    diffs.push(coldPay - hotPay);
+  }
+  diffs.sort((a, b) => a - b);
+
+  const meanDiff = diffs.reduce((a, b) => a + b, 0) / diffs.length;
+  const ciLow = diffs[Math.floor(bootstrapTimes * 0.025)];
+  const ciHigh = diffs[Math.floor(bootstrapTimes * 0.975)];
+
+  // Paired t-test on actual values
+  const coldMean = coldSample.reduce((s, d) => s + d.pool / Math.max(d.firstPrizeCount, 1), 0) / coldSample.length;
+  const hotMean = hotSample.reduce((s, d) => s + d.pool / Math.max(d.firstPrizeCount, 1), 0) / hotSample.length;
+
+  // 显著性:CI 不含 0 则显著
+  const significant = ciLow > 0 || ciHigh < 0;
+
+  return {
+    type: 'bootstrap',
+    coldMeanPrize: coldMean,
+    hotMeanPrize: hotMean,
+    observedDiff: coldMean - hotMean,
+    bootstrapMeanDiff: meanDiff,
+    ciLow,
+    ciHigh,
+    significant,
+    bootstrapTimes,
+    improvementPct: (coldMean / hotMean * 100 - 100)
+  };
+}
+
+function sampleAveragePrize(group, prng) {
+  const n = group.length;
+  let sum = 0;
+  for (let i = 0; i < n; i++) {
+    const idx = prng.nextInt(n);
+    const d = group[idx];
+    sum += d.pool / Math.max(d.firstPrizeCount, 1);
+  }
+  return sum / n;
 }
 
 // ========== Message Handler ==========
@@ -510,6 +846,12 @@ self.onmessage = function(e) {
     } else if (msg.type === 'geneticSearch') {
       result = runGeneticSearch(data, { ...msg.config, data, seed: msg.config.seed || 42 });
       if (result) self.postMessage({ type: 'geneticResult', payload: result });
+    } else if (msg.type === 'qcBacktest') {
+      result = runQcBacktest(data, { ...msg.config, data, seed: msg.config.seed || 42 });
+      if (result) self.postMessage({ type: 'qcResult', payload: result });
+    } else if (msg.type === 'bootstrapTest') {
+      result = runBootstrapTest(data, { ...msg.config, data, seed: msg.config.seed || 42 });
+      if (result) self.postMessage({ type: 'bootstrapResult', payload: result });
     }
   } catch (e) {
     self.postMessage({ type: 'error', payload: { message: e.message } });

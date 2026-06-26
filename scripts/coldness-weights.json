@@ -1,0 +1,137 @@
+{
+  "regression": {
+    "intercept": 1.1387577278709453,
+    "coefficients": [
+      {
+        "feature": "birthdayRatio",
+        "beta": 0.845964119687272
+      },
+      {
+        "feature": "monthDayRatio",
+        "beta": 0.6246076311204494
+      },
+      {
+        "feature": "consecutivePairs",
+        "beta": 0.05545936106415315
+      },
+      {
+        "feature": "allSameParity",
+        "beta": 0.06870218195532835
+      },
+      {
+        "feature": "luckyCount",
+        "beta": 0.04383321932860993
+      },
+      {
+        "feature": "unluckyCount",
+        "beta": -0.123833855843251
+      },
+      {
+        "feature": "isArithmetic",
+        "beta": 0.021511016019659854
+      },
+      {
+        "feature": "sumDeviation",
+        "beta": -0.005368342800814747
+      },
+      {
+        "feature": "blueLucky",
+        "beta": 0.2284044221116798
+      },
+      {
+        "feature": "blueUnlucky",
+        "beta": 0.055760846358467536
+      },
+      {
+        "feature": "blueSmall",
+        "beta": -0.025447849996572215
+      }
+    ],
+    "rSquared": 0.06887008792227015,
+    "mae": 0.5219580740543664
+  },
+  "bootstrap": [
+    {
+      "feature": "birthdayRatio",
+      "mean": 0.8443978808202541,
+      "ciLow": 0.4780577306412604,
+      "ciHigh": 1.1788896501827573,
+      "significant": true
+    },
+    {
+      "feature": "monthDayRatio",
+      "mean": 0.6314723562909575,
+      "ciLow": 0.442576064963137,
+      "ciHigh": 0.8162515703387825,
+      "significant": true
+    },
+    {
+      "feature": "consecutivePairs",
+      "mean": 0.053851397701479,
+      "ciLow": 0.013867118938446636,
+      "ciHigh": 0.09535784824528867,
+      "significant": true
+    },
+    {
+      "feature": "allSameParity",
+      "mean": 0.06807804791476141,
+      "ciLow": -0.07376806126296237,
+      "ciHigh": 0.2236065644862338,
+      "significant": false
+    },
+    {
+      "feature": "luckyCount",
+      "mean": 0.04299188727537167,
+      "ciLow": -0.01141465353404347,
+      "ciHigh": 0.1016260172511585,
+      "significant": false
+    },
+    {
+      "feature": "unluckyCount",
+      "mean": -0.12275596498810114,
+      "ciLow": -0.20069834720152388,
+      "ciHigh": -0.043429469416155234,
+      "significant": true
+    },
+    {
+      "feature": "isArithmetic",
+      "mean": 0.02143160511235711,
+      "ciLow": -0.08192679154344201,
+      "ciHigh": 0.12330936416086184,
+      "significant": false
+    },
+    {
+      "feature": "sumDeviation",
+      "mean": -0.005311653003833364,
+      "ciLow": -0.007564022030389525,
+      "ciHigh": -0.0028796140144491467,
+      "significant": true
+    },
+    {
+      "feature": "blueLucky",
+      "mean": 0.22762888290857455,
+      "ciLow": 0.1469131496000574,
+      "ciHigh": 0.30964962061014734,
+      "significant": true
+    },
+    {
+      "feature": "blueUnlucky",
+      "mean": 0.05716482001663109,
+      "ciLow": -0.07179434355368138,
+      "ciHigh": 0.19322465356661525,
+      "significant": false
+    },
+    {
+      "feature": "blueSmall",
+      "mean": -0.024121165444346327,
+      "ciLow": -0.08540047309429179,
+      "ciHigh": 0.04058411918756038,
+      "significant": false
+    }
+  ],
+  "walkForward": {
+    "coldAvgFPC": 7.087912087912088,
+    "hotAvgFPC": 12.076923076923077,
+    "improvement": 0.41310282074613286
+  }
+}

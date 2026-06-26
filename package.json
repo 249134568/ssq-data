@@ -28,6 +28,7 @@
       "main.js",
       "server.js",
       "index.html",
+      "coldness.js",
       "backtest/**/*",
       "package.json",
       "node_modules/**/*"

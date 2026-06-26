@@ -388,6 +388,651 @@ body {
   margin: 0 4px;
 }
 
+/* ========== Cold Recommendation Card ========== */
+.cold-rec-card {
+  margin-top: 16px;
+  border: 2px solid #0071e3;
+  background: linear-gradient(135deg, #f5f9ff 0%, #fff 100%);
+}
+
+.cold-notice {
+  background: #fff8e1;
+  border-left: 3px solid #ff9800;
+  padding: 10px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #5d4037;
+  margin-bottom: 16px;
+}
+
+.cold-best-row {
+  background: linear-gradient(135deg, #e3f2fd 0%, #f5f9ff 100%);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.cold-best-label {
+  font-size: 13px;
+  color: #0d47a1;
+  font-weight: 600;
+  margin-bottom: 10px;
+  letter-spacing: 0.05em;
+}
+
+.cold-best-balls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.cold-best-meta {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  font-size: 13px;
+  flex-wrap: wrap;
+}
+
+.cold-best-meta .cold-score { color: #1976d2; font-weight: 600; }
+.cold-best-meta .cold-prize { color: #2e7d32; font-weight: 700; }
+.cold-best-meta .cold-sharers { color: var(--text-tertiary); }
+
+.cold-best-actions {
+  margin-top: 14px;
+  text-align: center;
+}
+
+.cold-save-btn {
+  padding: 10px 28px !important;
+  font-size: 14px !important;
+  min-height: 40px;
+  box-shadow: 0 2px 8px rgba(52, 199, 89, 0.3);
+}
+
+.cold-save-btn-mini {
+  padding: 4px 10px;
+  font-size: 11px;
+  background: #34c759;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+
+.cold-save-btn-mini:hover { background: #2db84d; }
+.cold-save-btn-mini:active { opacity: 0.7; }
+
+/* 一键保存全部按钮容器 */
+.predict-batch-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  padding: 8px 0 16px;
+  margin-bottom: 8px;
+  border-bottom: 1px dashed var(--border);
+  flex-wrap: wrap;
+}
+
+.predict-batch-actions .bt-btn {
+  min-height: 38px;
+  padding: 8px 22px;
+  font-size: 14px;
+}
+
+/* 一键删除某期 + 中奖提示徽章 */
+.saved-period-win-badge {
+  font-size: 12px;
+  color: #d4af37;
+  background: linear-gradient(135deg, #fff8e1, #fff3e6);
+  border: 1px solid #e68a00;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-left: auto;
+  animation: prize-glow 1.5s ease-in-out infinite alternate;
+}
+
+.saved-period-no-win-badge {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  background: var(--bg-secondary);
+  padding: 3px 10px;
+  border-radius: 12px;
+  margin-left: auto;
+}
+
+.saved-period-del-all {
+  margin-left: 8px;
+  padding: 4px 12px;
+  font-size: 11px;
+  background: #ff3b30;
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+
+.saved-period-del-all:hover { background: #d70015; }
+.saved-period-del-all:active { opacity: 0.7; }
+
+/* ========== 中奖详情弹窗 ========== */
+.prize-detail-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.prize-detail-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  animation: prize-fade-in 0.2s ease;
+}
+
+.prize-detail-content {
+  position: relative;
+  background: var(--bg-primary, #fff);
+  border-radius: 16px;
+  max-width: 560px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 24px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: prize-slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes prize-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes prize-slide-up {
+  from { opacity: 0; transform: translateY(20px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.prize-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.prize-detail-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary, #1d1d1f);
+  margin-bottom: 8px;
+}
+
+.prize-detail-subtitle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--text-secondary, #515154);
+  flex-wrap: wrap;
+}
+
+.prize-detail-close {
+  background: none;
+  border: none;
+  font-size: 28px;
+  line-height: 1;
+  color: var(--text-tertiary, #86868b);
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background 0.2s;
+}
+
+.prize-detail-close:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.prize-detail-summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.prize-summary-item {
+  background: var(--bg-secondary, #f5f5f7);
+  border-radius: 10px;
+  padding: 12px 8px;
+  text-align: center;
+}
+
+.prize-summary-won {
+  background: linear-gradient(135deg, #fff8e1, #fff3e6);
+}
+
+.prize-summary-amount {
+  background: linear-gradient(135deg, #e8f5e9, #f1f8e9);
+}
+
+.prize-summary-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary, #1d1d1f);
+  margin-bottom: 2px;
+  font-variant-numeric: tabular-nums;
+}
+
+.prize-summary-won .prize-summary-value {
+  color: #d4af37;
+}
+
+.prize-summary-amount .prize-summary-value {
+  color: #2e7d32;
+}
+
+.prize-summary-label {
+  font-size: 11px;
+  color: var(--text-tertiary, #86868b);
+}
+
+.prize-detail-levels {
+  margin-bottom: 20px;
+}
+
+.prize-level-row {
+  display: flex;
+  align-items: center;
+  padding: 10px 14px;
+  background: var(--bg-secondary, #f5f5f7);
+  border-radius: 8px;
+  margin-bottom: 6px;
+  gap: 12px;
+}
+
+.prize-level-1 {
+  background: linear-gradient(135deg, #fff8e1, #fff3e6);
+  border-left: 4px solid #d4af37;
+}
+
+.prize-level-2 {
+  background: linear-gradient(135deg, #faf5f5, #fff0f0);
+  border-left: 4px solid #c92a34;
+}
+
+.prize-level-other {
+  border-left: 4px solid #1976d2;
+}
+
+.prize-level-name {
+  font-weight: 600;
+  color: var(--text-primary, #1d1d1f);
+  min-width: 70px;
+}
+
+.prize-level-1 .prize-level-name { color: #d4af37; }
+.prize-level-2 .prize-level-name { color: #c92a34; }
+
+.prize-level-count {
+  color: var(--text-secondary, #515154);
+  flex: 1;
+}
+
+.prize-level-amount {
+  font-weight: 700;
+  color: #2e7d32;
+  font-variant-numeric: tabular-nums;
+}
+
+.prize-level-empty {
+  text-align: center;
+  padding: 30px;
+  color: var(--text-tertiary, #86868b);
+  font-size: 14px;
+}
+
+.prize-detail-balls {
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+}
+
+.prize-detail-section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary, #1d1d1f);
+  margin-bottom: 12px;
+}
+
+.prize-balls-group {
+  margin-bottom: 16px;
+}
+
+.prize-balls-group-label {
+  font-size: 12px;
+  color: var(--text-secondary, #515154);
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.prize-balls-row {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 6px 0;
+  flex-wrap: wrap;
+}
+
+.prize-balls-amount {
+  margin-left: auto;
+  color: #2e7d32;
+  font-weight: 700;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 480px) {
+  .prize-detail-modal { padding: 10px; }
+  .prize-detail-content { padding: 16px; border-radius: 12px; }
+  .prize-detail-title { font-size: 16px; }
+  .prize-detail-summary { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .prize-summary-value { font-size: 16px; }
+  .prize-summary-label { font-size: 10px; }
+  .prize-level-name { min-width: 60px; font-size: 13px; }
+  .prize-balls-amount { font-size: 12px; }
+}
+
+/* ========== 已保存推算中奖历史 ========== */
+.win-history-summary {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.wh-stat-card {
+  background: var(--bg-secondary, #f5f5f7);
+  border-radius: 10px;
+  padding: 14px 8px;
+  text-align: center;
+}
+
+.wh-stat-invest { background: linear-gradient(135deg, #f5f5f7, #e8eaed); }
+.wh-stat-drawn { background: linear-gradient(135deg, #e3f2fd, #f5f9ff); }
+.wh-stat-won { background: linear-gradient(135deg, #fff8e1, #fff3e6); }
+.wh-stat-rate { background: linear-gradient(135deg, #f3e5f5, #faf5fb); }
+.wh-stat-amount { background: linear-gradient(135deg, #e8f5e9, #f1f8e9); }
+
+.wh-stat-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary, #1d1d1f);
+  margin-bottom: 2px;
+  font-variant-numeric: tabular-nums;
+}
+
+.wh-stat-won .wh-stat-value { color: #d4af37; }
+.wh-stat-rate .wh-stat-value { color: #7b1fa2; }
+.wh-stat-amount .wh-stat-value { color: #2e7d32; }
+
+.wh-stat-label {
+  font-size: 11px;
+  color: var(--text-tertiary, #86868b);
+}
+
+.wh-section-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary, #1d1d1f);
+  margin: 20px 0 12px;
+}
+
+.wh-level-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.wh-level-card {
+  background: var(--bg-secondary, #f5f5f7);
+  border-radius: 10px;
+  padding: 12px 4px;
+  text-align: center;
+  opacity: 0.6;
+  transition: all 0.2s;
+}
+
+.wh-level-won {
+  opacity: 1;
+  transform: scale(1.02);
+}
+
+.wh-level-1.wh-level-won {
+  background: linear-gradient(135deg, #fff8e1, #fff3e6);
+  border: 2px solid #d4af37;
+}
+
+.wh-level-2.wh-level-won {
+  background: linear-gradient(135deg, #faf5f5, #fff0f0);
+  border: 2px solid #c92a34;
+}
+
+.wh-level-name {
+  font-size: 11px;
+  color: var(--text-secondary, #515154);
+  margin-bottom: 4px;
+}
+
+.wh-level-1.wh-level-won .wh-level-name { color: #d4af37; font-weight: 700; }
+.wh-level-2.wh-level-won .wh-level-name { color: #c92a34; font-weight: 700; }
+
+.wh-level-count {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary, #1d1d1f);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.wh-level-won .wh-level-count { color: #1976d2; }
+
+.wh-level-unit {
+  font-size: 10px;
+  color: var(--text-tertiary, #86868b);
+}
+
+.wh-trend-canvas {
+  width: 100%;
+  height: 180px;
+  background: var(--bg-secondary, #f5f5f7);
+  border-radius: 10px;
+  margin-bottom: 16px;
+}
+
+.wh-period-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.wh-period-row {
+  display: flex;
+  align-items: center;
+  padding: 10px 14px;
+  background: var(--bg-secondary, #f5f5f7);
+  border-radius: 8px;
+  gap: 12px;
+  border-left: 3px solid #d4af37;
+}
+
+.wh-period-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.wh-period-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary, #1d1d1f);
+}
+
+.wh-period-meta {
+  font-size: 11px;
+  color: var(--text-secondary, #515154);
+}
+
+.wh-period-badges {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.wh-win-badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+.wh-win-level-1 { background: #fff8e1; color: #d4af37; border: 1px solid #e68a00; }
+.wh-win-level-2 { background: #faf5f5; color: #c92a34; border: 1px solid #e8343e; }
+.wh-win-level-3 { background: #e3f2fd; color: #1565c0; border: 1px solid #1976d2; }
+.wh-win-level-4 { background: #e8f5e9; color: #2e7d32; border: 1px solid #34c759; }
+.wh-win-level-5 { background: #fff3e0; color: #e68a00; border: 1px solid #ff9800; }
+.wh-win-level-6 { background: #f3e5f5; color: #7b1fa2; border: 1px solid #9c27b0; }
+
+.wh-empty {
+  text-align: center;
+  padding: 24px;
+  color: var(--text-tertiary, #86868b);
+  font-size: 13px;
+}
+
+@media (max-width: 768px) {
+  .win-history-summary { grid-template-columns: repeat(3, 1fr); }
+  .wh-level-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (max-width: 480px) {
+  .win-history-summary { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .wh-stat-value { font-size: 18px; }
+  .wh-stat-label { font-size: 10px; }
+  .wh-level-grid { grid-template-columns: repeat(3, 1fr); }
+  .wh-level-count { font-size: 18px; }
+  .wh-trend-canvas { height: 140px; }
+  .wh-period-row { flex-direction: column; align-items: flex-start; gap: 6px; padding: 10px; }
+}
+
+.cold-compare-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin-top: 8px;
+}
+
+.cold-compare-table th {
+  background: #f0f4f8;
+  padding: 8px 10px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border);
+}
+
+.cold-compare-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #eef2f7;
+  font-variant-numeric: tabular-nums;
+}
+
+.cold-row-best {
+  background: #fff8e1 !important;
+  font-weight: 600;
+}
+
+.cold-row-best td:first-child::before {
+  content: '❄ ';
+  color: #1976d2;
+}
+
+.cold-score-cell { color: #1976d2; font-weight: 600; }
+.cold-prize-cell { color: #2e7d32; font-weight: 600; }
+.cold-balls-cell { font-size: 12px; color: var(--text-secondary); }
+
+.cold-feat-hot {
+  color: #c92a34;
+  font-weight: 700;
+  margin-right: 2px;
+}
+
+.cold-feat-cold {
+  color: #1976d2;
+  font-weight: 700;
+  margin-right: 2px;
+}
+
+.cold-feat-neutral {
+  color: var(--text-tertiary);
+  margin-right: 2px;
+}
+
+.cold-feat-cell { font-size: 11px; }
+
+.cold-legend {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--border);
+  font-size: 11px;
+  color: var(--text-tertiary);
+  text-align: center;
+}
+
+.cold-legend .cold-feat-hot,
+.cold-legend .cold-feat-cold {
+  margin: 0 4px 0 8px;
+}
+
+@media (max-width: 480px) {
+  .cold-rec-card { margin-top: 10px; }
+  .cold-notice { font-size: 11px; padding: 8px 10px; }
+  .cold-best-row { padding: 10px; }
+  .cold-best-meta { gap: 10px; font-size: 11px; }
+  .cold-compare-table { font-size: 11px; }
+  .cold-compare-table th, .cold-compare-table td { padding: 5px 4px; }
+  .cold-balls-cell { font-size: 10px; }
+  .cold-feat-cell { font-size: 10px; }
+  .cold-save-btn { padding: 8px 18px !important; font-size: 13px !important; }
+  .cold-save-btn-mini { padding: 3px 8px; font-size: 10px; }
+  /* 表格横向滚动,避免操作列挤压 */
+  .cold-compare { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .cold-compare-table { min-width: 480px; }
+}
+
 /* ========== Prediction Actions ========== */
 .predict-actions {
   display: flex;
@@ -1079,7 +1724,9 @@ body {
   .stat-label { font-size: 10px; }
 
   /* ===== Saved predictions ===== */
-  .saved-period-header { padding: 8px 10px; gap: 4px; }
+  .saved-period-header { padding: 8px 10px; gap: 4px; flex-wrap: wrap; }
+  .saved-period-win-badge { margin-left: 0; font-size: 11px; padding: 2px 8px; }
+  .saved-period-del-all { font-size: 10px; padding: 3px 10px; margin-left: 0; }
   .saved-period-label { font-size: 12px; }
   .saved-period-date { font-size: 10px; }
   .saved-period-count { font-size: 10px; padding: 1px 6px; }
@@ -1274,6 +1921,11 @@ body {
   width: 100%;
   max-width: 620px;
   margin: 24px auto 0;
+}
+
+/* Prize cards: mobile-only view (hidden on desktop, table is shown instead) */
+.prize-cards {
+  display: none;
 }
 
 .latest-prize-title {
@@ -1499,8 +2151,9 @@ body {
           <div class="config-item">
             <label class="config-label">易经权重</label>
             <select class="config-select" id="yijing-weight">
+              <option value="0" selected>关闭 (0%)</option>
               <option value="30">轻度 (30%)</option>
-              <option value="50" selected>均衡 (50%)</option>
+              <option value="50">均衡 (50%)</option>
               <option value="70">重度 (70%)</option>
             </select>
           </div>
@@ -1568,6 +2221,14 @@ body {
         <div id="sales-stats" style="margin-top:16px"></div>
       </div>
     </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">已保存推算中奖历史</div>
+        <span style="font-size:12px;color:var(--text-tertiary)" id="win-history-meta"></span>
+      </div>
+      <div class="card-body" id="win-history-panel"></div>
+    </div>
   </div>
 
   <!-- YiJing Page -->
@@ -1626,6 +2287,7 @@ body {
   <div class="page" id="page-backtest"></div>
 
 <link rel="stylesheet" href="backtest/backtest.css">
+<script src="coldness.js"></script>
 <script src="backtest/backtest-ui.js"></script>
 
 <script>
@@ -2215,6 +2877,204 @@ function renderStats() {
 
   // Sales stats
   renderSalesStats();
+
+  // 已保存推算中奖历史
+  renderWinHistory();
+}
+
+// ========== 已保存推算中奖历史统计 ==========
+function renderWinHistory() {
+  const panel = document.getElementById('win-history-panel');
+  const metaEl = document.getElementById('win-history-meta');
+  if (!panel) return;
+
+  const saved = loadSavedPredictions();
+  if (saved.length === 0) {
+    panel.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-tertiary);font-size:13px">暂无已保存推算记录<br><span style="font-size:11px">保存预测后,这里会展示中奖统计</span></div>';
+    metaEl.textContent = '';
+    return;
+  }
+
+  // 统计每个期号的中奖情况
+  const periodStats = {};
+  saved.forEach(s => {
+    if (!periodStats[s.period]) {
+      periodStats[s.period] = { period: s.period, date: s.date, items: [], draw: null, wins: [], totalAmount: 0, wonCount: 0 };
+    }
+    periodStats[s.period].items.push(s);
+  });
+
+  // 关联开奖数据并统计中奖
+  Object.values(periodStats).forEach(ps => {
+    ps.draw = getDrawForPeriod(ps.period);
+    if (!ps.draw) return;
+    ps.items.forEach(s => {
+      const prize = checkPrize(s.red, s.blue, ps.draw.red, ps.draw.blue, ps.draw.prizes);
+      if (prize) {
+        ps.wins.push({ ...prize, item: s });
+        ps.totalAmount += parseInt(String(prize.amount).replace(/,/g, '')) || 0;
+        ps.wonCount++;
+      }
+    });
+  });
+
+  // 整体统计
+  const drawnPeriods = Object.values(periodStats).filter(ps => ps.draw);
+  const totalBets = saved.length;
+  const drawnBets = drawnPeriods.reduce((s, ps) => s + ps.items.length, 0);
+  const totalWonBets = drawnPeriods.reduce((s, ps) => s + ps.wonCount, 0);
+  const totalAmount = drawnPeriods.reduce((s, ps) => s + ps.totalAmount, 0);
+  const wonPeriods = drawnPeriods.filter(ps => ps.wonCount > 0);
+
+  // 按等级汇总
+  const levelSummary = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
+  drawnPeriods.forEach(ps => {
+    ps.wins.forEach(w => levelSummary[w.level]++);
+  });
+
+  metaEl.textContent = `共 ${saved.length} 注 / ${drawnPeriods.length} 期已开奖 / 中奖 ${totalWonBets} 注`;
+
+  // 按期号倒序
+  const sortedPeriods = Object.values(periodStats).sort((a, b) => b.period.localeCompare(a.period));
+  // 命中率趋势(最近 20 期)
+  const trendPeriods = sortedPeriods.filter(p => p.draw).slice(0, 20).reverse();
+
+  panel.innerHTML = `
+    <div class="win-history-summary">
+      <div class="wh-stat-card wh-stat-invest">
+        <div class="wh-stat-value">${totalBets}</div>
+        <div class="wh-stat-label">总投注数</div>
+      </div>
+      <div class="wh-stat-card wh-stat-drawn">
+        <div class="wh-stat-value">${drawnBets}</div>
+        <div class="wh-stat-label">已开奖注数</div>
+      </div>
+      <div class="wh-stat-card wh-stat-won">
+        <div class="wh-stat-value">${totalWonBets}</div>
+        <div class="wh-stat-label">中奖注数</div>
+      </div>
+      <div class="wh-stat-card wh-stat-rate">
+        <div class="wh-stat-value">${drawnBets > 0 ? ((totalWonBets / drawnBets) * 100).toFixed(1) : 0}%</div>
+        <div class="wh-stat-label">中奖率</div>
+      </div>
+      <div class="wh-stat-card wh-stat-amount">
+        <div class="wh-stat-value">${formatPrizeAmount(String(totalAmount))}</div>
+        <div class="wh-stat-label">累计奖金(元)</div>
+      </div>
+    </div>
+
+    <div class="wh-section-title">📊 各等级中奖次数</div>
+    <div class="wh-level-grid">
+      ${[1, 2, 3, 4, 5, 6].map(l => {
+        const names = { 1: '一等奖', 2: '二等奖', 3: '三等奖', 4: '四等奖', 5: '五等奖', 6: '六等奖' };
+        const count = levelSummary[l];
+        const cls = l === 1 ? 'wh-level-1' : l === 2 ? 'wh-level-2' : '';
+        return `<div class="wh-level-card ${cls} ${count > 0 ? 'wh-level-won' : ''}">
+          <div class="wh-level-name">${names[l]}</div>
+          <div class="wh-level-count">${count}</div>
+          <div class="wh-level-unit">注</div>
+        </div>`;
+      }).join('')}
+    </div>
+
+    ${trendPeriods.length > 0 ? `
+      <div class="wh-section-title">📈 中奖率趋势(最近 ${trendPeriods.length} 期)</div>
+      <canvas id="win-trend-chart" class="wh-trend-canvas"></canvas>
+    ` : ''}
+
+    <div class="wh-section-title">🏆 中奖期号明细</div>
+    ${wonPeriods.length === 0
+      ? '<div class="wh-empty">暂无中奖记录</div>'
+      : `<div class="wh-period-list">
+        ${wonPeriods.map(ps => `
+          <div class="wh-period-row" data-period="${ps.period}">
+            <div class="wh-period-info">
+              <span class="wh-period-label">第 ${ps.period} 期</span>
+              <span class="wh-period-meta">${ps.items.length} 注 · ${ps.wonCount} 注中 · ${formatPrizeAmount(String(ps.totalAmount))}元</span>
+            </div>
+            <div class="wh-period-badges">
+              ${ps.wins.map(w => `<span class="wh-win-badge wh-win-level-${w.level}">${w.name}</span>`).join('')}
+            </div>
+          </div>
+        `).join('')}
+      </div>`
+    }
+  `;
+
+  // 渲染趋势图
+  if (trendPeriods.length > 0) {
+    renderWinTrendChart(trendPeriods);
+  }
+}
+
+function renderWinTrendChart(periods) {
+  const canvas = document.getElementById('win-trend-chart');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = canvas.offsetWidth * dpr;
+  canvas.height = canvas.offsetHeight * dpr;
+  ctx.scale(dpr, dpr);
+  const w = canvas.offsetWidth, h = canvas.offsetHeight;
+  const pad = { top: 16, right: 16, bottom: 24, left: 40 };
+  const cw = w - pad.left - pad.right, ch = h - pad.top - pad.bottom;
+
+  ctx.clearRect(0, 0, w, h);
+
+  // 计算每期中奖率
+  const data = periods.map(ps => ({
+    period: ps.period,
+    rate: ps.items.length > 0 ? ps.wonCount / ps.items.length : 0,
+    amount: ps.totalAmount
+  }));
+
+  const maxRate = 1;
+  const maxAmount = Math.max(...data.map(d => d.amount), 1);
+
+  // 网格
+  ctx.strokeStyle = '#e5e5ea';
+  ctx.lineWidth = 0.5;
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.top + (ch / 4) * i;
+    ctx.beginPath();
+    ctx.moveTo(pad.left, y);
+    ctx.lineTo(pad.left + cw, y);
+    ctx.stroke();
+    ctx.fillStyle = '#86868b';
+    ctx.font = '10px sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText(((1 - i / 4) * 100).toFixed(0) + '%', pad.left - 4, y + 3);
+  }
+
+  // 中奖率折线
+  ctx.strokeStyle = '#1976d2';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  data.forEach((d, i) => {
+    const x = pad.left + (i / Math.max(data.length - 1, 1)) * cw;
+    const y = pad.top + (1 - d.rate) * ch;
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+
+  // 数据点
+  data.forEach((d, i) => {
+    const x = pad.left + (i / Math.max(data.length - 1, 1)) * cw;
+    const y = pad.top + (1 - d.rate) * ch;
+    ctx.fillStyle = d.rate > 0 ? '#1976d2' : '#c0c0c5';
+    ctx.beginPath();
+    ctx.arc(x, y, 3, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  // X 轴期号(只显示首末)
+  ctx.fillStyle = '#86868b';
+  ctx.font = '10px sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText(data[0].period, pad.left, h - 6);
+  ctx.textAlign = 'right';
+  ctx.fillText(data[data.length - 1].period, pad.left + cw, h - 6);
 }
 
 function renderPoolChart() {
@@ -2429,6 +3289,14 @@ function setupEvents() {
       document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
       tab.classList.add('active');
       document.getElementById(`page-${tab.dataset.page}`).classList.add('active');
+      // 切换到统计页时重新渲染中奖历史(数据可能已更新)
+      if (tab.dataset.page === 'stats' && typeof renderWinHistory === 'function') {
+        renderWinHistory();
+      }
+      // 切换到推算页时重新渲染已保存推算(开奖状态可能已更新)
+      if (tab.dataset.page === 'predict' && typeof renderSavedPredictions === 'function') {
+        renderSavedPredictions();
+      }
     });
   });
 
@@ -2470,6 +3338,9 @@ function renderPredictionResults(results, nextDate) {
         </span>
       </div>
       <div class="card-body" id="predict-results-body">
+        <div class="predict-batch-actions">
+          <button class="bt-btn bt-btn-success" id="save-all-btn">一键保存全部 ${results.length} 组</button>
+        </div>
         ${results.map((r, i) => `
           <div class="predict-result" data-idx="${i}" style="animation-delay:${i * 0.1}s">
             <div class="predict-result-header">
@@ -2512,8 +3383,147 @@ function renderPredictionResults(results, nextDate) {
     });
   });
 
+  // 一键保存全部
+  const saveAllBtn = container.querySelector('#save-all-btn');
+  if (saveAllBtn) {
+    saveAllBtn.addEventListener('click', function() {
+      const allReds = results.map(r => r.red);
+      const allBlues = results.map(r => r.blue);
+      saveAllPredictions(allReds, allBlues, nextPeriod, nextDate);
+    });
+  }
+
   // Scroll to results
   container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  // 渲染冷门组合推荐
+  renderColdRecommendations(results, nextDate);
+}
+
+// ========== 冷门组合推荐 ==========
+function renderColdRecommendations(predictResults, nextDate) {
+  if (typeof Coldness === 'undefined') return;
+
+  // 取近 5 期红球作为"跟风检测"
+  const recentReds = LOTTERY_DATA.slice(0, 5).flatMap(d => d.red);
+
+  // 给每组预测打冷门度评分
+  const scored = predictResults.map((r, i) => {
+    const score = Coldness.coldScore(r.red, r.blue, null, recentReds);
+    const features = Coldness.extractFeatures(r.red, r.blue);
+    return { ...r, idx: i, score, features };
+  });
+
+  // 按冷门度排序
+  const sorted = [...scored].sort((a, b) => b.score - a.score);
+  const best = sorted[0];
+  const worst = sorted[sorted.length - 1];
+
+  // 估算期望奖金(用当前奖池)
+  const latestPool = parseInt((LOTTERY_DATA[0]?.pool || '0').replace(/,/g, '')) || 500000000;
+  const latestSales = parseInt((LOTTERY_DATA[0]?.sales || '0').replace(/,/g, '')) || 350000000;
+  const bestPrize = Coldness.estimateExpectedPrize(best.score, latestSales, latestPool);
+  const worstPrize = Coldness.estimateExpectedPrize(worst.score, latestSales, latestPool);
+
+  // 构建特征说明
+  const significantFeatures = [
+    { key: 'birthdayRatio', label: '生日号', good: 'low' },
+    { key: 'monthDayRatio', label: '月日号', good: 'low' },
+    { key: 'consecutivePairs', label: '连号', good: 'low' },
+    { key: 'luckyCount', label: '吉祥号(6/8)', good: 'low' },
+    { key: 'unluckyCount', label: '忌讳号(4)', good: 'high' },
+    { key: 'sumDeviation', label: '和值偏离', good: 'high' },
+    { key: 'blueLucky', label: '蓝球6/8', good: 'low' }
+  ];
+
+  function featureBadge(val, key) {
+    const w = Coldness.DEFAULT_FEATURE_WEIGHTS[key] || 0;
+    const isHot = w * val > 0.05;
+    const isCold = w * val < -0.05;
+    const cls = isHot ? 'cold-feat-hot' : (isCold ? 'cold-feat-cold' : 'cold-feat-neutral');
+    const icon = isHot ? '⚠' : (isCold ? '❄' : '·');
+    return `<span class="${cls}">${icon}</span>`;
+  }
+
+  const card = document.createElement('div');
+  card.className = 'card cold-rec-card';
+  card.innerHTML = `
+    <div class="card-header">
+      <div class="card-title">❄ 冷门组合推荐</div>
+      <span style="font-size:12px;color:var(--text-tertiary)">基于 2030 期 firstPrizeCount 回归</span>
+    </div>
+    <div class="card-body">
+      <div class="cold-best-row">
+        <div class="cold-best-label">最佳推荐(最冷门)</div>
+        <div class="cold-best-balls">
+          ${best.red.map(n => `<span class="ball ball-red ball-lg">${n}</span>`).join('')}
+          <div class="predict-divider"></div>
+          <span class="ball ball-blue ball-lg">${best.blue}</span>
+        </div>
+        <div class="cold-best-meta">
+          <span class="cold-score">冷门度: ${best.score.toFixed(2)}</span>
+          <span class="cold-prize">期望奖金: ${(bestPrize.expectedPrize / 10000).toFixed(0)} 万元</span>
+          <span class="cold-sharers">预计分奖: ${bestPrize.expectedSharers.toFixed(1)} 人</span>
+        </div>
+        <div class="cold-best-actions">
+          <button class="bt-btn bt-btn-success cold-save-btn" data-red='${JSON.stringify(best.red)}' data-blue="${best.blue}">保存此冷门组合</button>
+          <button class="bt-btn bt-btn-primary cold-save-all-btn">一键保存全部 ${sorted.length} 组冷门</button>
+        </div>
+      </div>
+
+      <div class="cold-compare">
+        <table class="cold-compare-table">
+          <thead><tr><th>组</th><th>红球</th><th>蓝</th><th>冷门度</th><th>期望奖金</th><th>关键特征</th><th>操作</th></tr></thead>
+          <tbody>
+            ${sorted.map(r => {
+              const prize = Coldness.estimateExpectedPrize(r.score, latestSales, latestPool);
+              const featStr = significantFeatures
+                .filter(f => Math.abs((Coldness.DEFAULT_FEATURE_WEIGHTS[f.key] || 0) * (r.features[f.key] || 0)) > 0.05)
+                .map(f => featureBadge(r.features[f.key], f.key) + f.label)
+                .join(' ');
+              return `<tr class="${r === best ? 'cold-row-best' : ''}">
+                <td>第 ${r.idx + 1} 组</td>
+                <td class="cold-balls-cell">${r.red.join(', ')}</td>
+                <td>${r.blue}</td>
+                <td class="cold-score-cell">${r.score.toFixed(2)}</td>
+                <td class="cold-prize-cell">${(prize.expectedPrize / 10000).toFixed(0)} 万</td>
+                <td class="cold-feat-cell">${featStr || '<span class="cold-feat-neutral">·</span>'}</td>
+                <td><button class="cold-save-btn-mini" data-red='${JSON.stringify(r.red)}' data-blue="${r.blue}">保存</button></td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="cold-legend">
+        <span class="cold-feat-hot">⚠</span> 热门特征(降低期望奖金)
+        <span class="cold-feat-cold">❄</span> 冷门特征(提升期望奖金)
+      </div>
+    </div>
+  `;
+
+  const container = document.getElementById('predict-results');
+  container.appendChild(card);
+
+  // 绑定冷门推荐保存按钮事件
+  const nextPeriod = nextDate ? getPeriodForDate(nextDate) : getNextPeriod();
+  card.querySelectorAll('.cold-save-btn, .cold-save-btn-mini').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const red = JSON.parse(this.dataset.red);
+      const blue = parseInt(this.dataset.blue);
+      savePrediction(red, blue, nextPeriod, nextDate);
+    });
+  });
+
+  // 一键保存全部冷门组合
+  const saveAllColdBtn = card.querySelector('.cold-save-all-btn');
+  if (saveAllColdBtn) {
+    saveAllColdBtn.addEventListener('click', function() {
+      const allReds = sorted.map(r => r.red);
+      const allBlues = sorted.map(r => r.blue);
+      saveAllPredictions(allReds, allBlues, nextPeriod, nextDate);
+    });
+  }
 }
 
 // ========== Saved Predictions ==========
@@ -2591,11 +3601,48 @@ function savePrediction(red, blue, period, date) {
   const saved = loadSavedPredictions();
   // Check duplicate
   const dup = saved.find(s => s.period === period && JSON.stringify(s.red) === JSON.stringify(red) && s.blue === blue);
-  if (dup) { showToast('该号码已保存过'); return; }
+  if (dup) { showToast('该号码已保存过'); return false; }
   saved.unshift({ id: Date.now(), period, date, red, blue, savedAt: new Date().toLocaleString('zh-CN') });
   localStorage.setItem('saved_predictions', JSON.stringify(saved));
   showToast(`第 ${period} 期号码已保存`);
   renderSavedPredictions();
+  return true;
+}
+
+// 一键保存多组预测(去重,返回成功保存数)
+function saveAllPredictions(redsArr, bluesArr, period, date) {
+  const saved = loadSavedPredictions();
+  let added = 0, dup = 0;
+  // 用 Set 加速查重
+  const existingKeys = new Set(saved.map(s => `${s.period}|${s.red.join(',')}|${s.blue}`));
+  const now = Date.now();
+  const newItems = [];
+  for (let i = 0; i < redsArr.length; i++) {
+    const red = redsArr[i];
+    const blue = bluesArr[i];
+    const key = `${period}|${red.join(',')}|${blue}`;
+    if (existingKeys.has(key)) { dup++; continue; }
+    existingKeys.add(key);
+    newItems.push({ id: now + i, period, date, red, blue, savedAt: new Date().toLocaleString('zh-CN') });
+    added++;
+  }
+  if (added > 0) {
+    saved.unshift(...newItems);
+    localStorage.setItem('saved_predictions', JSON.stringify(saved));
+    renderSavedPredictions();
+  }
+  showToast(`已保存 ${added} 组,跳过 ${dup} 组重复`);
+}
+
+// 一键删除某期全部预测
+function removeAllPredictionsForPeriod(period) {
+  let saved = loadSavedPredictions();
+  const before = saved.length;
+  saved = saved.filter(s => s.period !== period);
+  const removed = before - saved.length;
+  localStorage.setItem('saved_predictions', JSON.stringify(saved));
+  renderSavedPredictions();
+  showToast(`已删除第 ${period} 期 ${removed} 组`);
 }
 
 function removeSavedPrediction(id) {
@@ -2631,6 +3678,25 @@ function renderSavedPredictions() {
       <div class="card-body saved-predictions">
         ${periodList.map(g => {
           const draw = getDrawForPeriod(g.period);
+          // 统计该期中奖情况
+          let winSummary = null;
+          if (draw) {
+            const wins = { level1: 0, level2: 0, level3: 0, level4: 0, level5: 0, level6: 0, totalAmount: 0, won: 0 };
+            g.items.forEach(s => {
+              const prize = checkPrize(s.red, s.blue, draw.red, draw.blue, draw.prizes);
+              if (prize) {
+                wins.won++;
+                wins.totalAmount += parseInt(String(prize.amount).replace(/,/g, '')) || 0;
+                if (prize.level === 1) wins.level1++;
+                else if (prize.level === 2) wins.level2++;
+                else if (prize.level === 3) wins.level3++;
+                else if (prize.level === 4) wins.level4++;
+                else if (prize.level === 5) wins.level5++;
+                else if (prize.level === 6) wins.level6++;
+              }
+            });
+            if (wins.won > 0) winSummary = wins;
+          }
           return `
           <div class="saved-period-card${draw ? ' expanded' : ''}" data-period="${g.period}">
             <div class="saved-period-header">
@@ -2638,7 +3704,9 @@ function renderSavedPredictions() {
               <span class="saved-period-label">第 ${g.period} 期</span>
               <span class="saved-period-date">${g.date}</span>
               ${draw ? '<span style="font-size:12px;color:#2db84d;background:rgba(45,184,77,0.1);padding:2px 8px;border-radius:10px">已开奖</span>' : '<span style="font-size:12px;color:var(--text-tertiary);background:var(--bg-secondary);padding:2px 8px;border-radius:10px">未开奖</span>'}
+              ${winSummary ? `<span class="saved-period-win-badge" data-period="${g.period}" title="点击查看中奖详情">${winSummary.won} 注中奖 · ${formatPrizeAmount(String(winSummary.totalAmount))}元</span>` : (draw ? '<span class="saved-period-no-win-badge">未中奖</span>' : '')}
               <span class="saved-period-count">${g.items.length} 组</span>
+              <button class="saved-period-del-all" data-period="${g.period}" title="删除该期全部 ${g.items.length} 组">一键删除该期</button>
             </div>
             <div class="saved-period-body">
               ${draw ? `
@@ -2684,19 +3752,152 @@ function renderSavedPredictions() {
   // Toggle expand/collapse
   container.querySelectorAll('.saved-period-header').forEach(header => {
     header.addEventListener('click', function(e) {
-      if (e.target.closest('.saved-pred-del')) return;
+      if (e.target.closest('.saved-pred-del, .saved-period-del-all, .saved-period-win-badge')) return;
       const card = this.closest('.saved-period-card');
       card.classList.toggle('expanded');
     });
   });
 
-  // Delete buttons
+  // 点击金色徽章弹出中奖详情
+  container.querySelectorAll('.saved-period-win-badge').forEach(badge => {
+    badge.addEventListener('click', function(e) {
+      e.stopPropagation();
+      const period = this.dataset.period;
+      showPrizeDetailModal(period);
+    });
+  });
+
+  // Delete single buttons
   container.querySelectorAll('.saved-pred-del').forEach(btn => {
     btn.addEventListener('click', function(e) {
       e.stopPropagation();
       removeSavedPrediction(parseInt(this.dataset.id));
     });
   });
+
+  // 一键删除某期全部
+  container.querySelectorAll('.saved-period-del-all').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      const period = this.dataset.period;
+      if (confirm(`确认删除第 ${period} 期全部记录?`)) {
+        removeAllPredictionsForPeriod(period);
+      }
+    });
+  });
+}
+
+// ========== 中奖详情弹窗 ==========
+function showPrizeDetailModal(period) {
+  const saved = loadSavedPredictions();
+  const items = saved.filter(s => s.period === period);
+  const draw = getDrawForPeriod(period);
+  if (!draw || items.length === 0) return;
+
+  // 统计各等级中奖情况
+  const levelStats = {
+    1: { name: '一等奖', count: 0, amount: 0, items: [] },
+    2: { name: '二等奖', count: 0, amount: 0, items: [] },
+    3: { name: '三等奖', count: 0, amount: 0, items: [] },
+    4: { name: '四等奖', count: 0, amount: 0, items: [] },
+    5: { name: '五等奖', count: 0, amount: 0, items: [] },
+    6: { name: '六等奖', count: 0, amount: 0, items: [] }
+  };
+  let totalAmount = 0;
+  let wonCount = 0;
+
+  items.forEach(s => {
+    const prize = checkPrize(s.red, s.blue, draw.red, draw.blue, draw.prizes);
+    if (prize) {
+      levelStats[prize.level].count++;
+      levelStats[prize.level].amount += parseInt(String(prize.amount).replace(/,/g, '')) || 0;
+      levelStats[prize.level].items.push(s);
+      totalAmount += parseInt(String(prize.amount).replace(/,/g, '')) || 0;
+      wonCount++;
+    }
+  });
+
+  // 移除已有弹窗
+  const existing = document.getElementById('prize-detail-modal');
+  if (existing) existing.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'prize-detail-modal';
+  modal.className = 'prize-detail-modal';
+  modal.innerHTML = `
+    <div class="prize-detail-backdrop"></div>
+    <div class="prize-detail-content">
+      <div class="prize-detail-header">
+        <div>
+          <div class="prize-detail-title">🎉 第 ${period} 期中奖详情</div>
+          <div class="prize-detail-subtitle">
+            开奖号码:
+            ${draw.red.map(n => `<span class="ball ball-red" style="width:24px;height:24px;font-size:10px">${n}</span>`).join('')}
+            <span class="ball ball-blue" style="width:24px;height:24px;font-size:10px">${draw.blue}</span>
+          </div>
+        </div>
+        <button class="prize-detail-close">×</button>
+      </div>
+      <div class="prize-detail-summary">
+        <div class="prize-summary-item">
+          <div class="prize-summary-value">${items.length}</div>
+          <div class="prize-summary-label">总投注</div>
+        </div>
+        <div class="prize-summary-item prize-summary-won">
+          <div class="prize-summary-value">${wonCount}</div>
+          <div class="prize-summary-label">中奖注数</div>
+        </div>
+        <div class="prize-summary-item prize-summary-amount">
+          <div class="prize-summary-value">${formatPrizeAmount(String(totalAmount))}</div>
+          <div class="prize-summary-label">累计奖金(元)</div>
+        </div>
+        <div class="prize-summary-item">
+          <div class="prize-summary-value">${items.length > 0 ? ((wonCount / items.length) * 100).toFixed(1) : 0}%</div>
+          <div class="prize-summary-label">中奖率</div>
+        </div>
+      </div>
+      <div class="prize-detail-levels">
+        ${Object.values(levelStats).filter(l => l.count > 0).map(l => `
+          <div class="prize-level-row prize-level-${l.name === '一等奖' ? '1' : l.name === '二等奖' ? '2' : 'other'}">
+            <div class="prize-level-name">${l.name}</div>
+            <div class="prize-level-count">${l.count} 注</div>
+            <div class="prize-level-amount">${formatPrizeAmount(String(l.amount))} 元</div>
+          </div>
+        `).join('')}
+        ${wonCount === 0 ? '<div class="prize-level-empty">本期未中奖</div>' : ''}
+      </div>
+      <div class="prize-detail-balls">
+        <div class="prize-detail-section-title">中奖号码明细(命中号码高亮)</div>
+        ${Object.values(levelStats).filter(l => l.count > 0).map(l => `
+          <div class="prize-balls-group">
+            <div class="prize-balls-group-label">${l.name}(${l.count}注)</div>
+            ${l.items.map(s => {
+              const drawRedSet = new Set(draw.red);
+              return `<div class="prize-balls-row">
+                ${s.red.map(n => `<span class="ball ball-red ${drawRedSet.has(n) ? 'saved-ball-hit' : ''}" style="width:24px;height:24px;font-size:10px">${n}</span>`).join('')}
+                <div class="predict-divider" style="height:20px;margin:0 2px"></div>
+                <span class="ball ball-blue ${s.blue === draw.blue ? 'saved-ball-hit-blue' : ''}" style="width:24px;height:24px;font-size:10px">${s.blue}</span>
+                <span class="prize-balls-amount">${formatPrizeAmount(String(parseInt(String(checkPrize(s.red, s.blue, draw.red, draw.blue, draw.prizes).amount).replace(/,/g, ''))))}元</span>
+              </div>`;
+            }).join('')}
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  // 绑定关闭事件
+  modal.querySelector('.prize-detail-close').addEventListener('click', () => modal.remove());
+  modal.querySelector('.prize-detail-backdrop').addEventListener('click', () => modal.remove());
+  // ESC 关闭
+  const escHandler = (e) => {
+    if (e.key === 'Escape') {
+      modal.remove();
+      document.removeEventListener('keydown', escHandler);
+    }
+  };
+  document.addEventListener('keydown', escHandler);
 }
 
 // ========== Auto Update ==========
@@ -2720,9 +3921,79 @@ async function checkForUpdates() {
       document.getElementById('updateBannerText').textContent =
         `第 ${status.latestPeriod} 期开奖数据已更新！`;
       document.getElementById('updateBanner').classList.add('show');
+
+      // 自动检查已保存推算中是否有"未开奖期"现在已开奖
+      // 触发数据重新加载后,会调用 checkPendingDraws
+      checkPendingDraws();
+    } else {
+      // 即使没有新期号,也检查已保存推算中是否有应该开奖但还没刷新的
+      checkPendingDraws();
     }
   } catch (e) {
     // Silently ignore — may be running without server
+  }
+}
+
+// ========== 检查已保存推算中的未开奖期是否已开奖 ==========
+// 当某期到了开奖日(周二/四/日 21:30 后)且数据已加载,自动重新渲染并提示
+function checkPendingDraws() {
+  const saved = loadSavedPredictions();
+  if (saved.length === 0) return;
+
+  // 找出所有"未开奖"的期号
+  const pendingPeriods = [...new Set(saved.map(s => s.period))]
+    .filter(period => !getDrawForPeriod(period));
+  if (pendingPeriods.length === 0) return;
+
+  // 检查这些期号是否已经能从 LOTTERY_DATA 找到(数据已更新到本地)
+  const nowDrawn = pendingPeriods.filter(period => getDrawForPeriod(period));
+  if (nowDrawn.length === 0) {
+    // 检查是否到了某个未开奖期的开奖时间(提示用户手动刷新)
+    checkDrawTimeForPending(pendingPeriods);
+    return;
+  }
+
+  // 有期号从未开奖变为已开奖,重新渲染
+  showToast(`🎉 第 ${nowDrawn[nowDrawn.length - 1]} 期已开奖!正在更新中奖情况...`);
+  if (typeof renderSavedPredictions === 'function') renderSavedPredictions();
+  if (typeof renderWinHistory === 'function') {
+    // 如果当前在统计页,重新渲染中奖历史
+    const statsTab = document.querySelector('.nav-tab[data-page="stats"]');
+    if (statsTab?.classList.contains('active')) renderWinHistory();
+  }
+}
+
+// 检查未开奖期是否已过开奖时间,提示用户刷新
+function checkDrawTimeForPending(pendingPeriods) {
+  const now = new Date();
+  // 双色球开奖时间:周二/四/日 21:30
+  const day = now.getDay(); // 0=Sun, 2=Tue, 4=Thu
+  const hour = now.getHours();
+  const minute = now.getMinutes();
+  const isDrawDay = (day === 0 || day === 2 || day === 4);
+  const isAfterDraw = isDrawDay && (hour > 21 || (hour === 21 && minute >= 30));
+
+  if (!isAfterDraw) return;
+
+  // 今天的开奖期号(简单估算:找到第一个未开奖期号,如果其日期是今天或之前,就提示)
+  const today = now.toISOString().split('T')[0];
+  const duePeriod = pendingPeriods.find(period => {
+    const saved = loadSavedPredictions().find(s => s.period === period);
+    if (!saved?.date) return false;
+    try {
+      const drawDate = saved.date.replace(/\(.*\)/, '').trim();
+      return drawDate <= today;
+    } catch { return false; }
+  });
+
+  if (duePeriod) {
+    // 显示提示横幅(但不自动刷新,让用户决定)
+    const banner = document.getElementById('updateBanner');
+    const bannerText = document.getElementById('updateBannerText');
+    if (banner && bannerText && !banner.classList.contains('show')) {
+      bannerText.textContent = `第 ${duePeriod} 期已开奖,点击"立即刷新"获取结果`;
+      banner.classList.add('show');
+    }
   }
 }
 
