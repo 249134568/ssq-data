@@ -27,8 +27,8 @@ const mobileStyle = `
   /* 移动端字号适配 */
   @media (max-width: 480px) {
     .card-title { font-size: 16px; }
-    .ball-lg { width: 36px; height: 36px; font-size: 16px; line-height: 36px; }
-    .ball-xl { width: 44px; height: 44px; font-size: 20px; line-height: 44px; }
+    .ball-lg { width: 30px; height: 30px; font-size: 13px; line-height: 30px; }
+    .ball-xl { width: 34px; height: 34px; font-size: 14px; line-height: 34px; }
   }
   /* 防止 iOS 输入框缩放 */
   input, select, textarea { font-size: 16px !important; }

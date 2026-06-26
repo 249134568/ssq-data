@@ -1923,8 +1923,10 @@ body {
 }
 
 /* Prize cards: mobile-only view (hidden on desktop, table is shown instead) */
-.prize-cards {
-  display: none;
+@media (min-width: 481px) {
+  .prize-cards {
+    display: none;
+  }
 }
 
 .latest-prize-title {
