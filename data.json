@@ -1,5 +1,205 @@
 [
   {
+    "period": "2026076",
+    "date": "2026-07-05(日)",
+    "red": [
+      1,
+      3,
+      19,
+      20,
+      24,
+      25
+    ],
+    "blue": 7,
+    "sales": "382,507,054",
+    "pool": "292,048,181",
+    "firstPrizeCount": "6",
+    "firstPrizeAmount": "7355406",
+    "secondPrizeCount": "150",
+    "secondPrizeAmount": "117770",
+    "prizes": {
+      "一等奖": {
+        "count": "6",
+        "amount": "7355406"
+      },
+      "二等奖": {
+        "count": "150",
+        "amount": "117770"
+      },
+      "三等奖": {
+        "count": "2031",
+        "amount": "3000"
+      },
+      "四等奖": {
+        "count": "92842",
+        "amount": "200"
+      },
+      "五等奖": {
+        "count": "1664242",
+        "amount": "10"
+      },
+      "六等奖": {
+        "count": "15092486",
+        "amount": "5"
+      }
+    },
+    "firstPrizeDetail": "江苏1注，浙江1注，河南1注，四川2注，陕西1注，共6注。",
+    "nextPool": "292,048,181"
+  },
+  {
+    "period": "2026075",
+    "date": "2026-07-02(四)",
+    "red": [
+      8,
+      12,
+      18,
+      21,
+      24,
+      30
+    ],
+    "blue": 1,
+    "sales": "370,657,052",
+    "pool": "283,183,968",
+    "firstPrizeCount": "5",
+    "firstPrizeAmount": "7840223",
+    "secondPrizeCount": "102",
+    "secondPrizeAmount": "556906",
+    "prizes": {
+      "一等奖": {
+        "count": "5",
+        "amount": "7840223"
+      },
+      "二等奖": {
+        "count": "102",
+        "amount": "556906"
+      },
+      "三等奖": {
+        "count": "979",
+        "amount": "3000"
+      },
+      "四等奖": {
+        "count": "57468",
+        "amount": "200"
+      },
+      "五等奖": {
+        "count": "1225768",
+        "amount": "10"
+      },
+      "六等奖": {
+        "count": "7486006",
+        "amount": "5"
+      },
+      "福运奖": {
+        "count": "9299611",
+        "amount": "5"
+      }
+    },
+    "firstPrizeDetail": "北京1注，江西1注，山东1注，云南1注，宁夏1注，共5注。",
+    "nextPool": "283,183,968"
+  },
+  {
+    "period": "2026074",
+    "date": "2026-06-30(二)",
+    "red": [
+      2,
+      23,
+      24,
+      26,
+      28,
+      32
+    ],
+    "blue": 4,
+    "sales": "370,952,514",
+    "pool": "308,183,968",
+    "firstPrizeCount": "4",
+    "firstPrizeAmount": "8277839",
+    "secondPrizeCount": "98",
+    "secondPrizeAmount": "535157",
+    "prizes": {
+      "一等奖": {
+        "count": "4",
+        "amount": "8277839"
+      },
+      "二等奖": {
+        "count": "98",
+        "amount": "535157"
+      },
+      "三等奖": {
+        "count": "994",
+        "amount": "3000"
+      },
+      "四等奖": {
+        "count": "57390",
+        "amount": "200"
+      },
+      "五等奖": {
+        "count": "1199876",
+        "amount": "10"
+      },
+      "六等奖": {
+        "count": "9388053",
+        "amount": "5"
+      },
+      "福运奖": {
+        "count": "8562185",
+        "amount": "5"
+      }
+    },
+    "firstPrizeDetail": "浙江1注，广东1注，云南1注，陕西1注，共4注。",
+    "nextPool": "308,183,968"
+  },
+  {
+    "period": "2026073",
+    "date": "2026-06-28(日)",
+    "red": [
+      9,
+      10,
+      13,
+      16,
+      19,
+      21
+    ],
+    "blue": 8,
+    "sales": "398,594,042",
+    "pool": "328,183,968",
+    "firstPrizeCount": "10",
+    "firstPrizeAmount": "6111492",
+    "secondPrizeCount": "136",
+    "secondPrizeAmount": "326909",
+    "prizes": {
+      "一等奖": {
+        "count": "10",
+        "amount": "6111492"
+      },
+      "二等奖": {
+        "count": "136",
+        "amount": "326909"
+      },
+      "三等奖": {
+        "count": "1395",
+        "amount": "3000"
+      },
+      "四等奖": {
+        "count": "74961",
+        "amount": "200"
+      },
+      "五等奖": {
+        "count": "1464286",
+        "amount": "10"
+      },
+      "六等奖": {
+        "count": "11239744",
+        "amount": "5"
+      },
+      "福运奖": {
+        "count": "9943535",
+        "amount": "5"
+      }
+    },
+    "firstPrizeDetail": "山西1注，福建1注，广东2注，广西1注，四川2注，贵州1注，陕西1注，甘肃1注，共10注。",
+    "nextPool": "328,183,968"
+  },
+  {
     "period": "2026072",
     "date": "2026-06-25(四)",
     "red": [
