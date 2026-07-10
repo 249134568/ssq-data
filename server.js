@@ -2,6 +2,7 @@ const express = require('express');
 const cron = require('node-cron');
 const fs = require('fs');
 const path = require('path');
+const https = require('https');
 let chromium;
 try { chromium = require('playwright').chromium; } catch { chromium = null; }
 
@@ -9,6 +10,7 @@ const app = express();
 const PORT = 8765;
 const DATA_FILE = process.env.SSQ_DATA_FILE || path.join(__dirname, 'data.json');
 const BASE_URL = 'https://www.cwl.gov.cn';
+const CWL_API = 'https://www.cwl.gov.cn/cwl_admin/front/cwlkj/search/kjxx/findDrawNotice';
 
 // ========== Data Helpers ==========
 function loadData() {
@@ -79,57 +81,163 @@ async function fetchPage(url, retries) {
   return fetchPagePlaywright(url, retries);
 }
 
-// ========== Scrape Latest Period from List Page ==========
-async function scrapeLatestPeriod() {
-  const html = await fetchPage(`${BASE_URL}/ygkj/wqkjgg/ssq/`);
+// ========== HTTPS GET (for JSON API) ==========
+function httpGet(url, options = {}) {
+  return new Promise((resolve, reject) => {
+    const reqOpts = {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+        ...options.headers,
+      },
+    };
+    const req = https.get(url, reqOpts, (res) => {
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        const nextUrl = res.headers.location.startsWith('http')
+          ? res.headers.location
+          : new URL(res.headers.location, url).href;
+        return httpGet(nextUrl, options).then(resolve).catch(reject);
+      }
+      const chunks = [];
+      res.on('data', c => chunks.push(c));
+      res.on('end', () => resolve({
+        status: res.statusCode,
+        headers: res.headers,
+        body: Buffer.concat(chunks).toString('utf-8'),
+      }));
+    });
+    req.on('error', reject);
+    req.setTimeout(30000, () => { req.destroy(); reject(new Error('Request timeout')); });
+  });
+}
 
-  // Find first data row: a <td> containing a 7-digit period number
-  const periodMatches = [...html.matchAll(/<td[^>]*>(\d{7})<\/td>/g)];
-  if (periodMatches.length === 0) throw new Error('无法从列表页解析期号');
+// ========== Convert cwl.gov.cn API item to data.json entry format ==========
+function convertCwlEntry(item) {
+  const period = item.code;
+  const red = (item.red || '').split(',').map(n => parseInt(n.trim(), 10)).filter(n => n > 0);
+  const blue = parseInt((item.blue || '0').trim(), 10);
+  if (red.length !== 6 || !blue) return null;
 
-  const period = periodMatches[0][1];
-
-  // Extract the full <tr> row containing this period
-  const rowStart = html.lastIndexOf('<tr', periodMatches[0].index);
-  const rowEnd = html.indexOf('</tr>', periodMatches[0].index);
-  const rowHtml = html.substring(rowStart, rowEnd);
-
-  // Extract red and blue balls
-  const redBalls = [];
-  let blue = 0;
-  const redBallMatches = [...rowHtml.matchAll(/qiu-item-wqgg-zjhm-red[^>]*>(\d+)<\/div>/g)];
-  const blueBallMatch = rowHtml.match(/qiu-item-wqgg-zjhm-blue[^>]*>(\d+)<\/div>/);
-
-  for (const m of redBallMatches) {
-    if (redBalls.length < 6) redBalls.push(parseInt(m[1]));
+  const prizeMap = { 1: '一等奖', 2: '二等奖', 3: '三等奖', 4: '四等奖', 5: '五等奖', 6: '六等奖', 7: '福运奖' };
+  const prizes = {};
+  for (const g of (item.prizegrades || [])) {
+    const name = prizeMap[g.type];
+    if (!name) continue;
+    const count = String(g.typenum || '');
+    const amount = String(g.typemoney || '');
+    if (count || amount) prizes[name] = { count, amount };
   }
-  if (blueBallMatch) blue = parseInt(blueBallMatch[1]);
-
-  // Parse all td cells
-  const cells = [];
-  const tdRegex = /<td[^>]*>([\s\S]*?)<\/td>/g;
-  let tdMatch;
-  while ((tdMatch = tdRegex.exec(rowHtml)) !== null) {
-    cells.push(tdMatch[1].replace(/<[^>]+>/g, '').trim());
+  if (!prizes['福运奖'] && item.fyjCount) {
+    prizes['福运奖'] = { count: String(item.fyjCount), amount: String(item.fyjMoney || '5') };
   }
-
-  // Get detail URL from the last <a> tag
-  const detailHref = rowHtml.match(/href="([^"]*\.shtml)"/);
-  const detailUrl = detailHref ? detailHref[1] : '';
 
   return {
     period,
-    date: cells[1] || '',
-    red: redBalls,
-    blue,
-    sales: cells[7] || '',
-    pool: cells[8] || '',
-    firstPrizeCount: cells[3] || '',
-    firstPrizeAmount: cells[4] || '',
-    secondPrizeCount: cells[5] || '',
-    secondPrizeAmount: cells[6] || '',
-    detailUrl,
+    date: item.date || '',
+    red, blue,
+    sales: item.sales ? Number(item.sales).toLocaleString('en-US') : '',
+    pool: item.poolmoney ? Number(item.poolmoney).toLocaleString('en-US') : '',
+    firstPrizeCount: prizes['一等奖']?.count || '',
+    firstPrizeAmount: prizes['一等奖']?.amount || '',
+    secondPrizeCount: prizes['二等奖']?.count || '',
+    secondPrizeAmount: prizes['二等奖']?.amount || '',
+    prizes,
+    firstPrizeDetail: item.content || '',
+    nextPool: item.poolmoney ? Number(item.poolmoney).toLocaleString('en-US') : '',
   };
+}
+
+// ========== Fetch Recent Periods via JSON API ==========
+async function fetchRecentPeriods(periods = 30) {
+  // Step 1: warm up cookies (HMF_CI anti-bot)
+  const home = await httpGet(BASE_URL + '/');
+  const cookies = (home.headers['set-cookie'] || [])
+    .map(c => c.split(';')[0])
+    .filter(c => c.includes('='))
+    .join('; ');
+
+  // Step 2: call JSON API
+  const apiUrl = `${CWL_API}?name=ssq&issueNo=&pageSize=${periods}&pageNo=1&_=${Date.now()}`;
+  const resp = await httpGet(apiUrl, {
+    headers: {
+      Cookie: cookies,
+      Referer: `${BASE_URL}/ygkj/wqkjgg/ssq/`,
+      Accept: 'application/json, text/plain, */*',
+    },
+  });
+
+  if (resp.status !== 200) throw new Error(`cwl.gov.cn API status ${resp.status}`);
+  const json = JSON.parse(resp.body);
+  if (json.state !== 0 || !Array.isArray(json.result)) {
+    throw new Error(`cwl.gov.cn API error: ${json.message || 'unknown'}`);
+  }
+
+  const results = json.result.map(convertCwlEntry).filter(Boolean);
+  if (results.length === 0) throw new Error('API 返回数据为空');
+  return results; // newest first
+}
+
+// ========== Scrape Recent Periods from List Page (fallback) ==========
+async function scrapeRecentPeriods() {
+  const html = await fetchPage(`${BASE_URL}/ygkj/wqkjgg/ssq/`);
+
+  // Parse ALL <tr> rows, use first <td> as period (validates format to avoid
+  // matching firstPrizeAmount which is also 7 digits)
+  const rowRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/g;
+  const results = [];
+  const seenPeriods = new Set();
+  let rowMatch;
+
+  while ((rowMatch = rowRegex.exec(html)) !== null) {
+    const rowHtml = rowMatch[1];
+
+    // Parse all td cells in this row
+    const cells = [];
+    const tdRegex = /<td[^>]*>([\s\S]*?)<\/td>/g;
+    let tdMatch;
+    while ((tdMatch = tdRegex.exec(rowHtml)) !== null) {
+      cells.push(tdMatch[1].replace(/<[^>]+>/g, '').trim());
+    }
+
+    // First cell must be a valid SSQ period: 7 digits starting with "20"
+    // (filters out firstPrizeAmount which is also 7 digits but doesn't start with "20")
+    if (cells.length === 0 || !/^20\d{5}$/.test(cells[0])) continue;
+
+    const period = cells[0];
+    if (seenPeriods.has(period)) continue;
+    seenPeriods.add(period);
+
+    // Extract red and blue balls
+    const redBalls = [];
+    let blue = 0;
+    const redBallMatches = [...rowHtml.matchAll(/qiu-item-wqgg-zjhm-red[^>]*>(\d+)<\/div>/g)];
+    const blueBallMatch = rowHtml.match(/qiu-item-wqgg-zjhm-blue[^>]*>(\d+)<\/div>/);
+
+    for (const m of redBallMatches) {
+      if (redBalls.length < 6) redBalls.push(parseInt(m[1]));
+    }
+    if (blueBallMatch) blue = parseInt(blueBallMatch[1]);
+
+    // Get detail URL from the last <a> tag
+    const detailHref = rowHtml.match(/href="([^"]*\.shtml)"/);
+    const detailUrl = detailHref ? detailHref[1] : '';
+
+    results.push({
+      period,
+      date: cells[1] || '',
+      red: redBalls,
+      blue,
+      sales: cells[7] || '',
+      pool: cells[8] || '',
+      firstPrizeCount: cells[3] || '',
+      firstPrizeAmount: cells[4] || '',
+      secondPrizeCount: cells[5] || '',
+      secondPrizeAmount: cells[6] || '',
+      detailUrl,
+    });
+  }
+
+  if (results.length === 0) throw new Error('无法从列表页解析期号');
+  return results; // newest first (as appears on list page)
 }
 
 // ========== Scrape Detail Page for Prizes ==========
@@ -163,6 +271,11 @@ async function scrapeDetail(relativeUrl) {
 // ========== Check & Update ==========
 let isUpdating = false;
 
+const isIncomplete = (entry) => !entry || !entry.sales || entry.sales === '_' || !entry.pool || entry.pool === '_'
+    || !entry.firstPrizeCount || entry.firstPrizeCount === '_'
+    || !entry.firstPrizeDetail
+    || !entry.prizes || Object.keys(entry.prizes).length === 0;
+
 async function checkAndUpdate() {
   if (isUpdating) {
     console.log('[更新] 正在更新中，跳过本次检查');
@@ -173,77 +286,96 @@ async function checkAndUpdate() {
   try {
     console.log(`[更新] ${new Date().toLocaleString('zh-CN')} 检查新数据...`);
 
-    const latestLocal = getLatestPeriod();
-    const remote = await scrapeLatestPeriod();
+    const localData = loadData();
+    const latestLocal = localData.length > 0 ? localData[0].period : null;
 
-    if (!remote.period) {
+    // 优先用 JSON API（可靠，返回结构化数据，不会误匹配奖金为期号）
+    let remotePeriods = null;
+    try {
+      console.log('[更新] 尝试 cwl.gov.cn JSON API...');
+      remotePeriods = await fetchRecentPeriods(30);
+      console.log(`[更新] JSON API 返回 ${remotePeriods.length} 期数据`);
+    } catch (e) {
+      console.log(`[更新] JSON API 失败: ${e.message}，尝试 HTML 列表页回退...`);
+      try {
+        remotePeriods = await scrapeRecentPeriods();
+      } catch (e2) {
+        console.log(`[更新] HTML 列表页也失败: ${e2.message}`);
+        return { updated: false, reason: 'fetch_failed', error: e.message };
+      }
+    }
+
+    if (!remotePeriods || remotePeriods.length === 0) {
       console.log('[更新] 无法获取远程数据');
       return { updated: false, reason: 'fetch_failed' };
     }
 
-    const isIncomplete = (entry) => !entry.sales || entry.sales === '_' || !entry.pool || entry.pool === '_'
-        || !entry.firstPrizeCount || entry.firstPrizeCount === '_'
-        || !entry.firstPrizeDetail;
+    // Find periods that need updating: missing locally or incomplete
+    const periodsToUpdate = [];
+    for (const remote of remotePeriods) {
+      if (!remote.period || !remote.red || remote.red.length !== 6 || !remote.blue) continue;
+      const existIdx = localData.findIndex(d => d.period === remote.period);
+      if (existIdx < 0) {
+        periodsToUpdate.push(remote);
+      } else if (isIncomplete(localData[existIdx])) {
+        periodsToUpdate.push(remote);
+      }
+    }
 
-    const localData = loadData();
-    if (remote.period === latestLocal && !isIncomplete(localData[0])) {
+    if (periodsToUpdate.length === 0) {
       console.log(`[更新] 数据已是最新（第 ${latestLocal} 期）`);
       return { updated: false, reason: 'up_to_date', period: latestLocal };
     }
 
-    if (remote.period === latestLocal && isIncomplete(localData[0])) {
-      console.log(`[更新] 第 ${latestLocal} 期数据不完整，重新获取...`);
-    } else if (remote.period !== latestLocal) {
-      console.log(`[更新] 发现新数据！本地: ${latestLocal}，远程: ${remote.period}`);
-    }
+    console.log(`[更新] 发现 ${periodsToUpdate.length} 期需要更新: ${periodsToUpdate.map(p => p.period).join(', ')}`);
 
-    // Fetch detail for prize info
-    let detail = { prizes: {}, firstPrizeDetail: '', nextPool: '' };
-    if (remote.detailUrl) {
-      try {
-        detail = await scrapeDetail(remote.detailUrl);
-        console.log('[更新] 详情页数据获取成功');
-      } catch (e) {
-        console.log(`[更新] 详情页获取失败: ${e.message}，仅保存基础数据`);
-      }
-    }
+    // Sort by period ascending (oldest first) to maintain data order when inserting
+    periodsToUpdate.sort((a, b) => a.period.localeCompare(b.period));
 
-    // Build new entry
-    const newEntry = {
-      period: remote.period,
-      date: remote.date,
-      red: remote.red,
-      blue: remote.blue,
-      sales: remote.sales,
-      pool: remote.pool,
-      firstPrizeCount: remote.firstPrizeCount,
-      firstPrizeAmount: remote.firstPrizeAmount,
-      secondPrizeCount: remote.secondPrizeCount,
-      secondPrizeAmount: remote.secondPrizeAmount,
-      prizes: detail.prizes,
-      firstPrizeDetail: detail.firstPrizeDetail,
-      nextPool: detail.nextPool,
-    };
-
-    // Validate
-    if (!newEntry.red || newEntry.red.length !== 6 || !newEntry.blue) {
-      console.log('[更新] 数据不完整，跳过更新');
-      return { updated: false, reason: 'invalid_data' };
-    }
-
-    // Add or update data
     const data = loadData();
-    const existIdx = data.findIndex(d => d.period === remote.period);
-    if (existIdx >= 0) {
-      data[existIdx] = newEntry;
-      console.log(`[更新] 已补全第 ${remote.period} 期数据`);
-    } else {
-      data.unshift(newEntry);
-      console.log(`[更新] 已新增第 ${remote.period} 期，共 ${data.length} 期数据`);
+    let updatedCount = 0;
+    const updatedPeriods = [];
+
+    for (const remote of periodsToUpdate) {
+      // JSON API data is already complete (includes prizes + firstPrizeDetail)
+      // Only fetch detail page if missing (fallback HTML scrape case)
+      let newEntry = remote;
+      if (!remote.prizes || Object.keys(remote.prizes).length === 0) {
+        let detail = { prizes: {}, firstPrizeDetail: '', nextPool: '' };
+        if (remote.detailUrl) {
+          try {
+            detail = await scrapeDetail(remote.detailUrl);
+          } catch (e) {
+            console.log(`[更新] 第 ${remote.period} 期详情页获取失败: ${e.message}`);
+          }
+        }
+        newEntry = {
+          ...remote,
+          prizes: detail.prizes,
+          firstPrizeDetail: detail.firstPrizeDetail,
+          nextPool: detail.nextPool || remote.nextPool,
+        };
+      }
+
+      const existIdx = data.findIndex(d => d.period === remote.period);
+      if (existIdx >= 0) {
+        data[existIdx] = newEntry;
+        console.log(`[更新] 已补全第 ${remote.period} 期数据`);
+      } else {
+        data.push(newEntry);
+        console.log(`[更新] 已新增第 ${remote.period} 期`);
+      }
+      updatedCount++;
+      updatedPeriods.push(remote.period);
     }
+
+    // Sort by period descending (newest first)
+    data.sort((a, b) => b.period.localeCompare(a.period));
     saveData(data);
 
-    return { updated: true, period: remote.period, total: data.length };
+    const latestUpdated = updatedPeriods[updatedPeriods.length - 1];
+    console.log(`[更新] 共更新 ${updatedCount} 期，最新: 第 ${latestUpdated} 期，总计 ${data.length} 期`);
+    return { updated: true, period: latestUpdated, total: data.length, updatedCount, updatedPeriods };
 
   } catch (e) {
     console.log(`[更新] 检查失败: ${e.message}`);

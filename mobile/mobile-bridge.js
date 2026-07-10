@@ -184,18 +184,12 @@
         || !entry.firstPrizeDetail
         || !entry.prizes || Object.keys(entry.prizes).length === 0;
 
-      // 只有远程不比本地新、且本地数据完整时,才算 up_to_date
-      if (remoteLatest.period === latestLocal && !isIncomplete(localData[0])) {
-        return { updated: false, reason: 'up_to_date', period: latestLocal };
-      }
-
-      // 如果远程比本地旧,也返回 up_to_date(避免误把旧数据当新数据)
-      if (latestLocal && remoteLatest.period < latestLocal) {
-        return { updated: false, reason: 'up_to_date', period: latestLocal };
-      }
+      // 不再 early-return:即使最新期号一致,也可能中间缺期需要补齐
+      // 只有完成 merge 后判定无变更才算 up_to_date
 
       // Merge remote data into local: update existing or add new entries
       let changed = false;
+      let addedCount = 0;
       for (const remoteEntry of remoteData) {
         if (!remoteEntry.period || !remoteEntry.red || remoteEntry.red.length !== 6) continue;
         const existIdx = localData.findIndex(d => d.period === remoteEntry.period);
@@ -228,16 +222,18 @@
           }
           if (merged) changed = true;
         } else {
+          // 远程有但本地没有的期号 — 补齐(包括错过的中间期)
           localData.push(remoteEntry);
           changed = true;
+          addedCount++;
         }
       }
 
       // Sort by period descending
       localData.sort((a, b) => b.period.localeCompare(a.period));
 
-      if (!changed && remoteLatest.period === latestLocal) {
-        return { updated: false, reason: 'up_to_date', period: latestLocal };
+      if (!changed) {
+        return { updated: false, reason: 'up_to_date', period: latestLocal || remoteLatest.period };
       }
 
       saveDataArray(localData);
@@ -249,7 +245,7 @@
         if (typeof window.initApp === 'function') window.initApp();
       }
 
-      return { updated: true, period: remoteLatest.period, total: localData.length };
+      return { updated: true, period: remoteLatest.period, total: localData.length, addedCount };
     } catch (e) {
       console.error('[Mobile Bridge] doUpdate 异常:', e);
       return { updated: false, reason: 'error', error: e.message };

@@ -4012,7 +4012,11 @@ async function manualRefresh() {
     if (updateResult && updateResult.updated) {
       // Data was updated - refresh UI
       currentLatestPeriod = LOTTERY_DATA.length > 0 ? LOTTERY_DATA[0].period : null;
-      showToast(`第 ${updateResult.period} 期数据已更新`);
+      const msg = updateResult.updatedCount > 1
+        ? `已补齐 ${updateResult.updatedCount} 期数据（最新: 第 ${updateResult.period} 期）`
+        : `第 ${updateResult.period} 期数据已更新`;
+      showToast(msg);
+      setTimeout(() => location.reload(), 1500);
       return;
     }
 
