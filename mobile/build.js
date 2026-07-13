@@ -23,12 +23,18 @@ const mobileStyle = `
   :root { --safe-top: env(safe-area-inset-top, 0px); --safe-bottom: env(safe-area-inset-bottom, 0px); }
   html, body { -webkit-tap-highlight-color: transparent; overscroll-behavior: none; }
   body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
-  .nav-inner { padding-top: calc(6px + var(--safe-top)) !important; }
+  /* Nav: sticky below status bar (not under it) */
+  .nav { top: var(--safe-top) !important; }
+  .nav-inner { padding-top: 6px !important; padding-bottom: 6px !important; }
   /* 移动端字号适配 */
   @media (max-width: 480px) {
     .card-title { font-size: 16px; }
     .ball-lg { width: 30px; height: 30px; font-size: 13px; line-height: 30px; }
     .ball-xl { width: 34px; height: 34px; font-size: 14px; line-height: 34px; }
+    /* 增大导航栏触摸区域，避免被状态栏遮挡 */
+    .nav-inner { min-height: 48px; }
+    .nav-tab { padding: 14px 12px; font-size: 14px; min-height: 44px; display: flex; align-items: center; }
+    .nav-refresh { min-height: 40px; padding: 8px 12px; }
   }
   /* 防止 iOS 输入框缩放 */
   input, select, textarea { font-size: 16px !important; }
