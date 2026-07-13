@@ -229,7 +229,8 @@ function runBacktest(data, config) {
   const { startDraw, predictionsPerDraw, weights, yijingPct, includeBaseline, sampleRate, seed } = config;
   const tracker = createHitTracker();
   const baselineTracker = includeBaseline ? createHitTracker() : null;
-  const startIndex = data.length - startDraw;
+  // 当 startDraw >= 数据长度时（"全部数据"选项），回测所有可用期
+  const startIndex = startDraw >= data.length ? data.length - 1 : data.length - startDraw;
   const totalDraws = Math.floor(startIndex / (sampleRate || 1));
   let processed = 0;
   const startTime = Date.now();
@@ -665,10 +666,16 @@ function runQcBacktest(data, config) {
     }
   } else {
     // 回归模式:滚动训练
-    for (let i = trainWindow; i < allFeatures.length - 1; i++) {
+    // 当 trainWindow >= 数据长度时（"全部数据"选项），用 expanding window：
+    // 每次用第 0~i 期训练（从少到多），回测所有可用期
+    const useExpanding = trainWindow >= allFeatures.length - 1;
+    const startI = useExpanding ? 1 : trainWindow;
+    for (let i = startI; i < allFeatures.length - 1; i++) {
       if (cancelled) return null;
 
-      const train = allFeatures.slice(i - trainWindow, i);
+      const train = useExpanding
+        ? allFeatures.slice(0, i)   // expanding: 用前 i 期训练
+        : allFeatures.slice(i - trainWindow, i);  // sliding: 用前 trainWindow 期
       const test = allFeatures[i + 1];
       const reg = linearRegression(train, featureKeys, f => Math.log(f.firstPrizeCount + 1));
 
@@ -688,7 +695,7 @@ function runQcBacktest(data, config) {
 
       if (steps.length % 100 === 0) {
         const elapsed = Date.now() - startTime;
-        const total = allFeatures.length - trainWindow - 1;
+        const total = allFeatures.length - startI - 1;
         const eta = Math.round((elapsed / steps.length) * (total - steps.length));
         self.postMessage({ type: 'progress', payload: { phase: 'qcBacktest', current: steps.length, total, elapsed, eta } });
       }
