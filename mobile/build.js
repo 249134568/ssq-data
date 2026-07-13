@@ -42,6 +42,9 @@ const mobileStyle = `
       transform: translateZ(0) !important;
       will-change: transform !important;
       -webkit-transform: translateZ(0) !important;
+      /* 更深的背景，高不透明度 */
+      background: rgba(245, 245, 247, 0.96) !important;
+      border-bottom: 0.5px solid rgba(0, 0, 0, 0.12) !important;
     }
     /* 两行布局：第一行 tabs，第二行刷新按钮 */
     .nav-inner {
@@ -61,14 +64,36 @@ const mobileStyle = `
       align-items: center;
       justify-content: center;
       white-space: nowrap;
+      border-radius: 10px !important;
+      transition: all 0.2s ease !important;
     }
+    /* 苹果风格 tab 选中：胶囊背景 */
+    .nav-tab.active {
+      background: #0071e3 !important;
+      color: #fff !important;
+      border-bottom: none !important;
+      font-weight: 600 !important;
+    }
+    .nav-tab:not(.active) { border-bottom: none !important; }
+    /* 苹果风格刷新按钮：胶囊形 + 蓝色渐变 */
     .nav-refresh {
       width: 100% !important;
       margin: 0 !important;
       flex: none !important;
-      min-height: 36px;
-      padding: 6px 12px !important;
-      font-size: 12px !important;
+      min-height: 40px;
+      padding: 8px 16px !important;
+      font-size: 13px !important;
+      font-weight: 600 !important;
+      border: none !important;
+      border-radius: 20px !important;
+      color: #fff !important;
+      background: linear-gradient(180deg, #0a84ff 0%, #0071e3 100%) !important;
+      box-shadow: 0 1px 3px rgba(0, 113, 227, 0.3) !important;
+      transition: all 0.15s ease !important;
+    }
+    .nav-refresh:active {
+      transform: scale(0.97) !important;
+      opacity: 0.9 !important;
     }
     /* body 留出固定导航栏空间: safe-top + 22(offset) + tabs(40) + gap(4) + refresh(36) + padding(10) = safe-top + 112 */
     body { padding-top: calc(var(--safe-top) + 112px) !important; }
