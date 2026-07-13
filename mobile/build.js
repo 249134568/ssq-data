@@ -38,6 +38,10 @@ const mobileStyle = `
       padding-left: 8px !important;
       padding-right: 8px !important;
       z-index: 9999 !important;
+      /* Android WebView fixed 定位 bug 修复：强制硬件加速 */
+      transform: translateZ(0) !important;
+      will-change: transform !important;
+      -webkit-transform: translateZ(0) !important;
     }
     /* 两行布局：第一行 tabs，第二行刷新按钮 */
     .nav-inner {
