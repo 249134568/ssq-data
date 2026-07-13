@@ -22,18 +22,31 @@ const mobileStyle = `
 <style>
   :root { --safe-top: env(safe-area-inset-top, 0px); --safe-bottom: env(safe-area-inset-bottom, 0px); }
   html, body { -webkit-tap-highlight-color: transparent; overscroll-behavior: none; }
-  body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
-  /* Nav: sticky below status bar (not under it) */
-  .nav { top: var(--safe-top) !important; }
-  .nav-inner { padding-top: 6px !important; padding-bottom: 6px !important; }
+  body { padding-bottom: var(--safe-bottom); }
   /* 移动端字号适配 */
   @media (max-width: 480px) {
     .card-title { font-size: 16px; }
     .ball-lg { width: 30px; height: 30px; font-size: 13px; line-height: 30px; }
     .ball-xl { width: 34px; height: 34px; font-size: 14px; line-height: 34px; }
-    /* 导航栏：所有 tab 单行显示，不换行 */
-    .nav-inner { flex-wrap: nowrap !important; min-height: 48px; padding: 4px 4px !important; }
-    .nav-tabs { flex-wrap: nowrap !important; flex: 1 1 auto; overflow-x: auto; }
+    /* 导航栏：fixed 固定在顶部，不随滚动移动 */
+    .nav {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      padding-top: var(--safe-top) !important;
+      padding-left: 8px !important;
+      padding-right: 8px !important;
+    }
+    /* 两行布局：第一行 tabs，第二行刷新按钮 */
+    .nav-inner {
+      flex-direction: column !important;
+      padding: 4px 0 6px !important;
+      height: auto !important;
+      max-width: 100% !important;
+      gap: 4px !important;
+    }
+    .nav-tabs { width: 100% !important; flex: none !important; flex-wrap: nowrap !important; overflow-x: auto; }
     .nav-tab {
       padding: 10px 4px !important;
       font-size: 12px !important;
@@ -44,7 +57,16 @@ const mobileStyle = `
       justify-content: center;
       white-space: nowrap;
     }
-    .nav-refresh { min-height: 36px; padding: 6px 8px !important; font-size: 11px !important; flex: 0 0 auto; }
+    .nav-refresh {
+      width: 100% !important;
+      margin: 0 !important;
+      flex: none !important;
+      min-height: 36px;
+      padding: 6px 12px !important;
+      font-size: 12px !important;
+    }
+    /* body 留出固定导航栏空间: safe-top + tabs(40) + gap(4) + refresh(36) + padding(10) = safe-top + 90 */
+    body { padding-top: calc(var(--safe-top) + 90px) !important; }
   }
   /* 防止 iOS 输入框缩放 */
   input, select, textarea { font-size: 16px !important; }
