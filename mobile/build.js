@@ -23,6 +23,51 @@ const mobileStyle = `
   :root { --safe-top: env(safe-area-inset-top, 0px); --safe-bottom: env(safe-area-inset-bottom, 0px); }
   html, body { -webkit-tap-highlight-color: transparent; overscroll-behavior: none; }
   body { padding-bottom: var(--safe-bottom); }
+
+  /* 夜间模式：覆盖 CSS 变量 */
+  body.dark-theme {
+    --bg-primary: #1c1c1e;
+    --bg-secondary: #2c2c2e;
+    --bg-glass: rgba(44, 44, 46, 0.96);
+    --text-primary: #f5f5f7;
+    --text-secondary: #aeaeb2;
+    --text-tertiary: #8e8e93;
+    --accent-blue: #0a84ff;
+    --border: rgba(255, 255, 255, 0.12);
+    background: #1c1c1e !important;
+    color: #f5f5f7 !important;
+  }
+  body.dark-theme .nav {
+    background: rgba(28, 28, 30, 0.96) !important;
+    border-bottom-color: rgba(255, 255, 255, 0.12) !important;
+  }
+  body.dark-theme .card,
+  body.dark-theme .hero,
+  body.dark-theme .prize-card,
+  body.dark-theme .saved-prediction-card,
+  body.dark-theme .backtest-panel {
+    background: #2c2c2e !important;
+    color: #f5f5f7 !important;
+    border-color: rgba(255,255,255,0.12) !important;
+  }
+  body.dark-theme .card-title,
+  body.dark-theme h1, body.dark-theme h2, body.dark-theme h3 {
+    color: #f5f5f7 !important;
+  }
+  body.dark-theme .ball-red { background: #ff453a !important; color: #fff !important; }
+  body.dark-theme .ball-blue { background: #0a84ff !important; color: #fff !important; }
+  body.dark-theme input, body.dark-theme select, body.dark-theme textarea {
+    background: #3a3a3c !important;
+    color: #f5f5f7 !important;
+    border-color: rgba(255,255,255,0.15) !important;
+  }
+  body.dark-theme .history-row,
+  body.dark-theme .history-row-main,
+  body.dark-theme tr { background: #2c2c2e !important; color: #f5f5f7 !important; }
+  body.dark-theme .history-row:nth-child(even),
+  body.dark-theme tr:nth-child(even) { background: #333335 !important; }
+  body.dark-theme .update-banner { background: #0a84ff !important; }
+
   /* 移动端字号适配 */
   @media (max-width: 480px) {
     .card-title { font-size: 16px; }
@@ -38,15 +83,13 @@ const mobileStyle = `
       padding-left: 8px !important;
       padding-right: 8px !important;
       z-index: 9999 !important;
-      /* Android WebView fixed 定位 bug 修复：强制硬件加速 */
       transform: translateZ(0) !important;
       will-change: transform !important;
       -webkit-transform: translateZ(0) !important;
-      /* 更深的背景，高不透明度 */
       background: rgba(245, 245, 247, 0.96) !important;
       border-bottom: 0.5px solid rgba(0, 0, 0, 0.12) !important;
     }
-    /* 两行布局：第一行 tabs，第二行刷新按钮 */
+    /* 两行布局：第一行 tabs，第二行按钮组 */
     .nav-inner {
       flex-direction: column !important;
       padding: 4px 0 6px !important;
@@ -67,7 +110,6 @@ const mobileStyle = `
       border-radius: 10px !important;
       transition: all 0.2s ease !important;
     }
-    /* 苹果风格 tab 选中：胶囊背景 */
     .nav-tab.active {
       background: #0071e3 !important;
       color: #fff !important;
@@ -75,38 +117,106 @@ const mobileStyle = `
       font-weight: 600 !important;
     }
     .nav-tab:not(.active) { border-bottom: none !important; }
-    /* 苹果风格刷新按钮：胶囊形 + 蓝色渐变 */
-    .nav-refresh {
+
+    /* 按钮行：刷新 + 主题切换，各占一半 */
+    .nav-buttons-row {
+      display: flex !important;
+      gap: 8px !important;
       width: 100% !important;
-      margin: 0 !important;
       flex: none !important;
+    }
+    .nav-refresh, .theme-toggle-btn {
+      flex: 1 1 0 !important;
+      width: auto !important;
+      margin: 0 !important;
       min-height: 40px;
-      padding: 8px 16px !important;
+      padding: 8px 12px !important;
       font-size: 13px !important;
       font-weight: 600 !important;
       border: none !important;
       border-radius: 20px !important;
       color: #fff !important;
-      background: linear-gradient(180deg, #0a84ff 0%, #0071e3 100%) !important;
-      box-shadow: 0 1px 3px rgba(0, 113, 227, 0.3) !important;
+      cursor: pointer;
       transition: all 0.15s ease !important;
     }
-    .nav-refresh:active {
+    /* 刷新按钮：蓝色渐变 */
+    .nav-refresh {
+      background: linear-gradient(180deg, #0a84ff 0%, #0071e3 100%) !important;
+      box-shadow: 0 1px 3px rgba(0, 113, 227, 0.3) !important;
+    }
+    /* 主题切换按钮：灰色渐变（白天模式时） */
+    .theme-toggle-btn {
+      background: linear-gradient(180deg, #6e6e73 0%, #48484a 100%) !important;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2) !important;
+    }
+    /* 主题切换按钮：夜间模式时变金色（提示切回白天） */
+    .theme-toggle-btn.is-dark {
+      background: linear-gradient(180deg, #ffd60a 0%, #ff9500 100%) !important;
+      color: #1d1d1f !important;
+      box-shadow: 0 1px 3px rgba(255, 149, 0, 0.4) !important;
+    }
+    .nav-refresh:active, .theme-toggle-btn:active {
       transform: scale(0.97) !important;
       opacity: 0.9 !important;
     }
-    /* body 留出固定导航栏空间: safe-top + 22(offset) + tabs(40) + gap(4) + refresh(36) + padding(10) = safe-top + 112 */
     body { padding-top: calc(var(--safe-top) + 112px) !important; }
   }
-  /* 防止 iOS 输入框缩放 */
   input, select, textarea { font-size: 16px !important; }
-  /* 长按菜单禁用 */
   * { -webkit-touch-callout: none; }
-  /* 滚动惯性 */
   .history-table-wrap, .cold-compare, .prize-detail-content { -webkit-overflow-scrolling: touch; }
 </style>
 `;
-html = html.replace('</head>', mobileStyle + '</head>');
+
+// Inject theme toggle script
+const themeScript = `
+<script>
+(function() {
+  function setupThemeToggle() {
+    var navRefresh = document.querySelector('.nav-refresh');
+    if (!navRefresh) {
+      setTimeout(setupThemeToggle, 500);
+      return;
+    }
+    if (document.querySelector('.theme-toggle-btn')) return;
+
+    var navInner = navRefresh.parentElement;
+    var buttonRow = document.createElement('div');
+    buttonRow.className = 'nav-buttons-row';
+
+    navInner.removeChild(navRefresh);
+    buttonRow.appendChild(navRefresh);
+
+    var themeBtn = document.createElement('button');
+    themeBtn.className = 'theme-toggle-btn';
+    themeBtn.type = 'button';
+    themeBtn.innerHTML = '<span>夜间模式</span>';
+    themeBtn.onclick = function() {
+      var isDark = document.body.classList.toggle('dark-theme');
+      themeBtn.classList.toggle('is-dark', isDark);
+      themeBtn.innerHTML = isDark ? '<span>白天模式</span>' : '<span>夜间模式</span>';
+      try { localStorage.setItem('ssq_theme', isDark ? 'dark' : 'light'); } catch(e) {}
+    };
+    buttonRow.appendChild(themeBtn);
+    navInner.appendChild(buttonRow);
+
+    try {
+      var saved = localStorage.getItem('ssq_theme');
+      if (saved === 'dark') {
+        document.body.classList.add('dark-theme');
+        themeBtn.classList.add('is-dark');
+        themeBtn.innerHTML = '<span>白天模式</span>';
+      }
+    } catch(e) {}
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupThemeToggle);
+  } else {
+    setupThemeToggle();
+  }
+})();
+</script>
+`;
+html = html.replace('</head>', mobileStyle + themeScript + '</head>');
 
 fs.writeFileSync(path.join(WWW, 'index.html'), html);
 
