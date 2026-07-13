@@ -31,10 +31,20 @@ const mobileStyle = `
     .card-title { font-size: 16px; }
     .ball-lg { width: 30px; height: 30px; font-size: 13px; line-height: 30px; }
     .ball-xl { width: 34px; height: 34px; font-size: 14px; line-height: 34px; }
-    /* 增大导航栏触摸区域，避免被状态栏遮挡 */
-    .nav-inner { min-height: 48px; }
-    .nav-tab { padding: 14px 12px; font-size: 14px; min-height: 44px; display: flex; align-items: center; }
-    .nav-refresh { min-height: 40px; padding: 8px 12px; }
+    /* 导航栏：所有 tab 单行显示，不换行 */
+    .nav-inner { flex-wrap: nowrap !important; min-height: 48px; padding: 4px 4px !important; }
+    .nav-tabs { flex-wrap: nowrap !important; flex: 1 1 auto; overflow-x: auto; }
+    .nav-tab {
+      padding: 10px 4px !important;
+      font-size: 12px !important;
+      min-height: 40px;
+      flex: 1 1 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      white-space: nowrap;
+    }
+    .nav-refresh { min-height: 36px; padding: 6px 8px !important; font-size: 11px !important; flex: 0 0 auto; }
   }
   /* 防止 iOS 输入框缩放 */
   input, select, textarea { font-size: 16px !important; }
