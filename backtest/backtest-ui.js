@@ -14,6 +14,9 @@ function initBacktestTab() {
   if (!container) return;
   container.innerHTML = buildBacktestHTML();
 
+  // 恢复保存的权重
+  restoreSavedWeights();
+
   // Event listeners
   document.getElementById('bt-run-btn').addEventListener('click', runBacktest);
   document.getElementById('bt-cancel-btn').addEventListener('click', cancelBacktest);
@@ -22,6 +25,42 @@ function initBacktestTab() {
   document.getElementById('bt-qc-run-btn').addEventListener('click', runQcBacktest);
   document.getElementById('bt-bootstrap-btn').addEventListener('click', runBootstrapTest);
 }
+
+// 恢复 localStorage 中保存的权重（预测权重 + 冷门度权重）
+function restoreSavedWeights() {
+  try {
+    // 恢复主推算权重 -> __predictionWeightOverride + 输入框
+    const savedPredict = localStorage.getItem('ssq_predict_weights');
+    if (savedPredict) {
+      const w = JSON.parse(savedPredict);
+      window.__predictionWeightOverride = w;
+      // 同步到回测页面的输入框
+      const setVal = (id, val) => { const el = document.getElementById(id); if (el && val !== undefined) el.value = val; };
+      setVal('bt-w-freq', w.freq);
+      setVal('bt-w-recent', w.recent);
+      setVal('bt-w-miss', w.miss);
+      setVal('bt-w-sp', w.salesPool);
+      setVal('bt-w-pert', w.perturbation);
+      setVal('bt-w-rw', w.recentWindow);
+    }
+    // 恢复冷门度权重 -> Coldness.DEFAULT_FEATURE_WEIGHTS
+    const savedColdness = localStorage.getItem('ssq_coldness_weights');
+    if (savedColdness && typeof Coldness !== 'undefined') {
+      const weights = JSON.parse(savedColdness);
+      for (const key of Object.keys(Coldness.DEFAULT_FEATURE_WEIGHTS)) {
+        if (weights[key] !== undefined) {
+          Coldness.DEFAULT_FEATURE_WEIGHTS[key] = weights[key];
+        }
+      }
+    }
+  } catch(e) { /* ignore */ }
+}
+
+// 页面加载时尽早恢复预测权重（不依赖回测页面初始化）
+try {
+  const _savedPW = localStorage.getItem('ssq_predict_weights');
+  if (_savedPW) window.__predictionWeightOverride = JSON.parse(_savedPW);
+} catch(e) {}
 
 function buildBacktestHTML() {
   return `
@@ -196,6 +235,9 @@ function getWeights() {
     document.getElementById('bt-w-pert').value = w.perturbation;
     showToast(`权重已自动归一化 (原总和: ${sum.toFixed(2)})`);
   }
+  // 同步到主推算：写入 __predictionWeightOverride + 持久化
+  window.__predictionWeightOverride = w;
+  try { localStorage.setItem('ssq_predict_weights', JSON.stringify(w)); } catch(e) {}
   return w;
 }
 
@@ -507,6 +549,8 @@ function renderOptimizedWeights(weights, score) {
 
   // Store optimized weights for apply button
   window.__btOptimizedWeights = weights;
+  // GA 训练完成后自动应用优化权重到冷门推荐
+  applyOptimizedWeights();
 }
 
 function renderGAChart(genHistory) {
@@ -561,7 +605,9 @@ function applyOptimizedWeights() {
         Coldness.DEFAULT_FEATURE_WEIGHTS[key] = w[key];
       }
     }
-    showToast('✓ 冷门度权重已应用!下次推算的"冷门组合推荐"将使用进化后的权重。');
+    // 持久化到 localStorage，刷新后自动恢复
+    try { localStorage.setItem('ssq_coldness_weights', JSON.stringify(Coldness.DEFAULT_FEATURE_WEIGHTS)); } catch(e) {}
+    showToast('✓ 冷门度权重已应用并保存!下次推算的"冷门组合推荐"将使用进化后的权重。');
   } else {
     showToast('Coldness 模块未加载');
   }
