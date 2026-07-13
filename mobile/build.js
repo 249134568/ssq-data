@@ -34,7 +34,7 @@ const mobileStyle = `
       top: 0 !important;
       left: 0 !important;
       right: 0 !important;
-      padding-top: var(--safe-top) !important;
+      padding-top: calc(var(--safe-top) + 22px) !important;
       padding-left: 8px !important;
       padding-right: 8px !important;
       z-index: 9999 !important;
@@ -70,8 +70,8 @@ const mobileStyle = `
       padding: 6px 12px !important;
       font-size: 12px !important;
     }
-    /* body 留出固定导航栏空间: safe-top + tabs(40) + gap(4) + refresh(36) + padding(10) = safe-top + 90 */
-    body { padding-top: calc(var(--safe-top) + 90px) !important; }
+    /* body 留出固定导航栏空间: safe-top + 22(offset) + tabs(40) + gap(4) + refresh(36) + padding(10) = safe-top + 112 */
+    body { padding-top: calc(var(--safe-top) + 112px) !important; }
   }
   /* 防止 iOS 输入框缩放 */
   input, select, textarea { font-size: 16px !important; }
