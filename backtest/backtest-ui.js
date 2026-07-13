@@ -204,10 +204,11 @@ function runBacktest() {
   const srcData = window.LOTTERY_DATA || [];
   if (srcData.length < 50) { showToast('数据不足，请等待数据加载'); return; }
   const slimData = srcData.map(d => ({ period: d.period, date: d.date, red: d.red, blue: d.blue, sales: d.sales, pool: d.pool, firstPrizeCount: d.firstPrizeCount }));
+  showToast(`回测 ${slimData.length} 期数据，最新: 第 ${slimData[0].period} 期`);
   document.getElementById('bt-progress').classList.add('active');
   document.getElementById('bt-run-btn').disabled = true;
   document.getElementById('bt-progress-fill').style.width = '0%';
-  document.getElementById('bt-progress-label').textContent = '回测中...';
+  document.getElementById('bt-progress-label').textContent = `回测中... (${slimData.length} 期, 最新 ${slimData[0].period})`;
   document.getElementById('bt-progress-eta').textContent = '';
   worker.postMessage({
     type: 'backtest',
@@ -231,10 +232,11 @@ function runOptimize() {
   const srcData = window.LOTTERY_DATA || [];
   if (srcData.length < 50) { showToast('数据不足，请等待数据加载'); return; }
   const slimData = srcData.map(d => ({ period: d.period, date: d.date, red: d.red, blue: d.blue, sales: d.sales, pool: d.pool, firstPrizeCount: d.firstPrizeCount }));
+  showToast(`GA 训练 ${slimData.length} 期数据，最新: 第 ${slimData[0].period} 期`);
   document.getElementById('bt-opt-progress').classList.add('active');
   document.getElementById('bt-optimize-btn').disabled = true;
   document.getElementById('bt-opt-progress-fill').style.width = '0%';
-  document.getElementById('bt-opt-progress-label').textContent = '冷门度权重进化中...';
+  document.getElementById('bt-opt-progress-label').textContent = `冷门度权重进化中... (${slimData.length} 期, 最新 ${slimData[0].period})`;
   document.getElementById('bt-opt-progress-eta').textContent = '';
 
   // 直接调用遗传算法进化冷门度权重
@@ -585,11 +587,12 @@ function runQcBacktest() {
   const srcData = window.LOTTERY_DATA || [];
   if (srcData.length < 50) { showToast('数据不足'); return; }
   const slimData = srcData.map(d => ({ period: d.period, date: d.date, red: d.red, blue: d.blue, sales: d.sales, pool: d.pool, firstPrizeCount: d.firstPrizeCount }));
+  showToast(`q_c 回测 ${slimData.length} 期数据，最新: 第 ${slimData[0].period} 期`);
 
   document.getElementById('bt-qc-progress').classList.add('active');
   document.getElementById('bt-qc-run-btn').disabled = true;
   document.getElementById('bt-qc-progress-fill').style.width = '0%';
-  document.getElementById('bt-qc-progress-label').textContent = 'q_c 回测中...';
+  document.getElementById('bt-qc-progress-label').textContent = `q_c 回测中... (${slimData.length} 期, 最新 ${slimData[0].period})`;
   document.getElementById('bt-qc-progress-eta').textContent = '';
 
   worker.postMessage({
