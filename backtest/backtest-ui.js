@@ -2,6 +2,12 @@
 
 let btWorker = null;
 
+// 解析期数：value === 'all' 时返回 dataLen（全部数据）
+function resolvePeriods(value, dataLen) {
+  if (value === 'all') return dataLen;
+  return parseInt(value);
+}
+
 function initBacktestTab() {
 
   const container = document.getElementById('page-backtest');
@@ -28,6 +34,7 @@ function buildBacktestHTML() {
             <option value="100">100 期</option>
             <option value="200" selected>200 期</option>
             <option value="500">500 期</option>
+            <option value="all">全部数据</option>
           </select>
         </div>
       </div>
@@ -58,6 +65,7 @@ function buildBacktestHTML() {
             <option value="500">近500期</option>
             <option value="1000">近1000期</option>
             <option value="1800" selected>近1800期</option>
+            <option value="all">全部数据</option>
           </select>
         </div>
         <div class="bt-config-item">
@@ -116,6 +124,7 @@ function buildBacktestHTML() {
           <select class="bt-config-select" id="bt-ga-window">
             <option value="200" selected>200 期</option>
             <option value="500">500 期</option>
+            <option value="all">全部数据</option>
           </select>
         </div>
       </div>
@@ -204,7 +213,7 @@ function runBacktest() {
     type: 'backtest',
     config: {
       data: slimData,
-      startDraw: parseInt(document.getElementById('bt-range').value),
+      startDraw: resolvePeriods(document.getElementById('bt-range').value, slimData.length),
       predictionsPerDraw: parseInt(document.getElementById('bt-pred-count').value),
       yijingPct: parseInt(document.getElementById('bt-yijing').value),
       weights: getWeights(),
@@ -237,7 +246,7 @@ function runOptimize() {
       generations: parseInt(document.getElementById('bt-ga-gen').value),
       mutationRate: 0.3,
       seed: 42,
-      trainWindow: parseInt(document.getElementById('bt-ga-window').value),
+      trainWindow: resolvePeriods(document.getElementById('bt-ga-window').value, slimData.length),
       initialPopulation: []
     }
   });
@@ -271,7 +280,7 @@ function handleWorkerMessage(e) {
         type: 'geneticSearch',
         config: {
           data: slimData,
-          startDraw: parseInt(document.getElementById('bt-range').value),
+          startDraw: resolvePeriods(document.getElementById('bt-range').value, slimData.length),
           predictionsPerDraw: parseInt(document.getElementById('bt-pred-count').value),
           yijingPct: parseInt(document.getElementById('bt-yijing').value),
           populationSize: parseInt(document.getElementById('bt-ga-pop').value),
@@ -587,7 +596,7 @@ function runQcBacktest() {
     type: 'qcBacktest',
     config: {
       data: slimData,
-      trainWindow: parseInt(document.getElementById('bt-qc-window').value),
+      trainWindow: resolvePeriods(document.getElementById('bt-qc-window').value, slimData.length),
       predictionQuantiles: [0.1, 0.2, 0.5],
       seed: 42
     }
@@ -610,7 +619,7 @@ function runBootstrapTest() {
     type: 'bootstrapTest',
     config: {
       data: slimData,
-      trainWindow: parseInt(document.getElementById('bt-qc-window').value),
+      trainWindow: resolvePeriods(document.getElementById('bt-qc-window').value, slimData.length),
       bootstrapTimes: 500,
       seed: 42
     }
