@@ -164,6 +164,10 @@ const mobileStyle = `
   input, select, textarea { font-size: 16px !important; }
   * { -webkit-touch-callout: none; }
   .history-table-wrap, .cold-compare, .prize-detail-content { -webkit-overflow-scrolling: touch; }
+  /* === Android 新系统 WebView 滚动兼容补丁（修复系统升级后无法上下滑动）=== */
+  html { overflow-y: auto !important; -webkit-overflow-scrolling: touch !important; touch-action: pan-y !important; }
+  body { overflow-y: auto !important; overflow-x: hidden !important; touch-action: pan-y !important; -webkit-overflow-scrolling: touch !important; overscroll-behavior-y: contain !important; }
+  .history-table-wrap, .cold-compare, .prize-detail-content, .nav-tabs, .latest-prize-table-wrap, canvas { touch-action: pan-x pan-y !important; }
 </style>
 `;
 
