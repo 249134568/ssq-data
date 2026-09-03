@@ -164,10 +164,14 @@ const mobileStyle = `
   input, select, textarea { font-size: 16px !important; }
   * { -webkit-touch-callout: none; }
   .history-table-wrap, .cold-compare, .prize-detail-content { -webkit-overflow-scrolling: touch; }
-  /* === Android 新系统 WebView 滚动兼容补丁（修复系统升级后无法上下滑动）=== */
-  html { overflow-y: auto !important; -webkit-overflow-scrolling: touch !important; touch-action: pan-y !important; }
-  body { overflow-y: auto !important; overflow-x: hidden !important; touch-action: pan-y !important; -webkit-overflow-scrolling: touch !important; overscroll-behavior-y: contain !important; }
-  .history-table-wrap, .cold-compare, .prize-detail-content, .nav-tabs, .latest-prize-table-wrap, canvas { touch-action: pan-x pan-y !important; }
+  /* === WebView 触摸滚动修复 v3（实测根因：body 带 overflow 声明后成为独立滚动容器，
+       触摸/滚轮滚动链在 body 终止，不再传播到视口 → 页面卡死无法滑动。
+       新版 Android WebView 对此处理更严格，系统升级后旧包失效）===
+       规则：overflow 只允许出现在 html 上；body 必须彻底交还默认滚动行为 */
+  html { overflow-x: hidden !important; overflow-y: auto !important; overscroll-behavior-y: contain !important; }
+  body { overflow: visible !important; touch-action: pan-y !important; }
+  /* 横向滚动容器与图表：允许双向触摸，不阻断页面纵滑 */
+  .history-table-wrap, .cold-compare, .prize-detail-content, .nav-tabs, canvas { touch-action: pan-x pan-y !important; }
 </style>
 `;
 
